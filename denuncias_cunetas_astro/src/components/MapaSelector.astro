@@ -1,0 +1,633 @@
+---
+interface Props {
+	nombreLatitud?: string;
+	nombreLongitud?: string;
+	requerido?: boolean;
+	altura?: "normal" | "grande";
+}
+
+const {
+	nombreLatitud = "latitud",
+	nombreLongitud = "longitud",
+	requerido = true,
+	altura = "normal",
+} = Astro.props;
+
+const componentId = `mapa-selector-${crypto.randomUUID()}`;
+const mapId = `${componentId}-map`;
+const latitudId = `${componentId}-latitud`;
+const longitudId = `${componentId}-longitud`;
+const buttonId = `${componentId}-location-button`;
+const buttonTextId = `${componentId}-location-button-text`;
+const messageId = `${componentId}-message`;
+---
+
+<div
+	class="space-y-4"
+	data-map-selector
+	data-map-id={mapId}
+	data-latitud-id={latitudId}
+	data-longitud-id={longitudId}
+	data-button-id={buttonId}
+	data-button-text-id={buttonTextId}
+	data-message-id={messageId}
+>
+	<div
+		class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between"
+	>
+		<div class="flex items-start gap-3">
+			<span
+				class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#EAF4FF] text-[#0A3D91]"
+			>
+				<svg
+					xmlns="http://www.w3.org/2000/svg"
+					viewBox="0 0 24 24"
+					fill="none"
+					stroke="currentColor"
+					stroke-width="2"
+					stroke-linecap="round"
+					stroke-linejoin="round"
+					class="h-5 w-5"
+					aria-hidden="true"
+				>
+					<path
+						d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0Z"
+					></path>
+					<circle cx="12" cy="10" r="3"></circle>
+				</svg>
+			</span>
+
+			<div>
+				<h3 class="text-base font-extrabold text-[#061B4E]">
+					Ubicación de la cuneta
+					{
+						requerido && (
+							<span class="ml-1 text-red-600">*</span>
+						)
+					}
+				</h3>
+
+				<p class="mt-1 text-sm leading-6 text-slate-600">
+					Seleccione en el mapa el lugar donde se encuentra el problema
+					o mueva el marcador hasta la ubicación correcta.
+				</p>
+			</div>
+		</div>
+
+		<button
+			id={buttonId}
+			type="button"
+			class="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-xl border border-[#0A3D91] bg-white px-4 text-sm font-bold text-[#0A3D91] transition hover:bg-[#EAF4FF] focus:outline-none focus:ring-4 focus:ring-blue-100 disabled:cursor-not-allowed disabled:opacity-60"
+		>
+			<svg
+				xmlns="http://www.w3.org/2000/svg"
+				viewBox="0 0 24 24"
+				fill="none"
+				stroke="currentColor"
+				stroke-width="2"
+				stroke-linecap="round"
+				stroke-linejoin="round"
+				class="h-5 w-5"
+				aria-hidden="true"
+			>
+				<circle cx="12" cy="12" r="3"></circle>
+				<path d="M12 2v2"></path>
+				<path d="M12 20v2"></path>
+				<path d="m4.93 4.93 1.42 1.42"></path>
+				<path d="m17.66 17.66 1.41 1.41"></path>
+				<path d="M2 12h2"></path>
+				<path d="M20 12h2"></path>
+				<path d="m6.34 17.66-1.41 1.41"></path>
+				<path d="m19.07 4.93-1.41 1.42"></path>
+			</svg>
+
+			<span id={buttonTextId}>
+				Usar mi ubicación
+			</span>
+		</button>
+	</div>
+
+	<div
+		class="relative z-0 overflow-hidden rounded-2xl border border-slate-300 bg-white shadow-sm"
+	>
+		<div
+			id={mapId}
+			class:list={[
+				"w-full",
+				altura === "grande"
+					? "h-112 sm:h-136"
+					: "h-80 sm:h-96",
+			]}
+			aria-label="Mapa para seleccionar la ubicación de la cuneta"
+		>
+		</div>
+	</div>
+
+	<!-- Solo aparece cuando existe un mensaje -->
+	<div
+		id={messageId}
+		class="hidden items-center gap-2 rounded-xl border px-4 py-3 text-sm font-semibold"
+		aria-live="polite"
+	>
+	</div>
+
+	<input
+		id={latitudId}
+		type="hidden"
+		name={nombreLatitud}
+		required={requerido}
+	/>
+
+	<input
+		id={longitudId}
+		type="hidden"
+		name={nombreLongitud}
+		required={requerido}
+	/>
+</div>
+
+<script>
+	import L from "leaflet";
+	import "leaflet/dist/leaflet.css";
+
+	const DEFAULT_CENTER: [number, number] = [-0.253, -79.175];
+	const DEFAULT_ZOOM = 13;
+	const SELECTED_ZOOM = 17;
+
+	interface MapSelectorElement extends HTMLElement {
+		dataset: DOMStringMap & {
+			initialized?: string;
+			mapId?: string;
+			latitudId?: string;
+			longitudId?: string;
+			buttonId?: string;
+			buttonTextId?: string;
+			messageId?: string;
+		};
+	}
+
+	interface MapSelectorState {
+		map: L.Map;
+		reset: () => void;
+	}
+
+	const mapStates = new WeakMap<
+		MapSelectorElement,
+		MapSelectorState
+	>();
+
+	const initializeMapSelector = (
+		container: MapSelectorElement,
+	) => {
+		if (container.dataset.initialized === "true") {
+			const existingState = mapStates.get(container);
+
+			window.setTimeout(() => {
+				existingState?.map.invalidateSize();
+			}, 100);
+
+			return;
+		}
+
+		const mapId = container.dataset.mapId;
+		const latitudId = container.dataset.latitudId;
+		const longitudId = container.dataset.longitudId;
+		const buttonId = container.dataset.buttonId;
+		const buttonTextId = container.dataset.buttonTextId;
+		const messageId = container.dataset.messageId;
+
+		if (
+			!mapId ||
+			!latitudId ||
+			!longitudId ||
+			!buttonId ||
+			!buttonTextId ||
+			!messageId
+		) {
+			return;
+		}
+
+		const mapElement =
+			document.getElementById(mapId);
+
+		const latitudInput =
+			document.getElementById(
+				latitudId,
+			) as HTMLInputElement | null;
+
+		const longitudInput =
+			document.getElementById(
+				longitudId,
+			) as HTMLInputElement | null;
+
+		const locationButton =
+			document.getElementById(
+				buttonId,
+			) as HTMLButtonElement | null;
+
+		const locationButtonText =
+			document.getElementById(buttonTextId);
+
+		const messageElement =
+			document.getElementById(messageId);
+
+		if (
+			!mapElement ||
+			!latitudInput ||
+			!longitudInput ||
+			!locationButton ||
+			!locationButtonText ||
+			!messageElement
+		) {
+			return;
+		}
+
+
+
+		const customIcon = L.divIcon({
+			className: "",
+			html: `
+				<div
+					style="
+						width: 38px;
+						height: 38px;
+						background: #061B4E;
+						border-radius: 9999px;
+						display: flex;
+						align-items: center;
+						justify-content: center;
+						box-shadow: 0 6px 18px rgba(6, 27, 78, 0.35);
+						border: 3px solid white;
+					"
+				>
+					<svg
+						xmlns="http://www.w3.org/2000/svg"
+						width="19"
+						height="19"
+						viewBox="0 0 24 24"
+						fill="white"
+						aria-hidden="true"
+					>
+						<path
+							d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5S10.62 6.5 12 6.5s2.5 1.12 2.5 2.5S13.38 11.5 12 11.5z"
+						/>
+					</svg>
+				</div>
+			`,
+			iconSize: [38, 38],
+			iconAnchor: [19, 38],
+		});
+
+		const map = L.map(mapElement, {
+			center: DEFAULT_CENTER,
+			zoom: DEFAULT_ZOOM,
+			zoomControl: true,
+			attributionControl: true,
+		});
+
+		L.tileLayer(
+			"https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+			{
+				attribution:
+					'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+				maxZoom: 19,
+			},
+		).addTo(map);
+
+		container.dataset.initialized = "true";
+        let marker: L.Marker | null = null;
+        let locationRequest = 0;
+        let locating = false;
+        let explicitDisabled = false;
+        const isDisabled = () => explicitDisabled || !!container.closest("fieldset[disabled]");
+        const cancelLocation = () => {
+            locationRequest++;
+            locating = false;
+            locationButton.disabled = isDisabled();
+            locationButtonText.textContent = "Usar mi ubicación";
+        };
+        const updateInteraction = () => {
+            const disabled = isDisabled();
+            if (disabled) cancelLocation();
+            locationButton.disabled = disabled || locating;
+            const handlers = [map.dragging, map.touchZoom, map.doubleClickZoom,
+                map.scrollWheelZoom, map.boxZoom, map.keyboard];
+            handlers.forEach(handler => disabled ? handler.disable() : handler.enable());
+            if (marker?.dragging) disabled ? marker.dragging.disable() : marker.dragging.enable();
+            // Los enlaces de zoom Leaflet no son controles de formulario.
+            map.getContainer().style.pointerEvents = disabled ? "none" : "";
+            map.getContainer().setAttribute("aria-disabled", String(disabled));
+            if (!disabled) window.setTimeout(() => map.invalidateSize(), 0);
+        };
+        container.addEventListener("mapa-selector:disabled", event => {
+            explicitDisabled = (event as CustomEvent<{ disabled?: boolean }>).detail?.disabled === true;
+            updateInteraction();
+        });
+        // También detecta cambios cuando se utiliza el mapa en otro formulario.
+        const observer = new MutationObserver(updateInteraction);
+        let parent: HTMLElement | null = container.parentElement;
+        while (parent) {
+            if (parent instanceof HTMLFieldSetElement) observer.observe(parent, { attributes: true, attributeFilter: ["disabled"] });
+            parent = parent.parentElement;
+        }
+        updateInteraction();
+
+		const hideMessage = () => {
+			messageElement.textContent = "";
+
+			messageElement.classList.add("hidden");
+
+			messageElement.classList.remove(
+				"flex",
+				"border-slate-200",
+				"bg-slate-50",
+				"text-slate-600",
+				"border-emerald-200",
+				"bg-emerald-50",
+				"text-emerald-700",
+				"border-red-200",
+				"bg-red-50",
+				"text-red-700",
+				"border-blue-200",
+				"bg-blue-50",
+				"text-[#0A3D91]",
+			);
+		};
+
+		const showMessage = (
+			message: string,
+			type: "loading" | "success" | "error",
+		) => {
+			messageElement.textContent = message;
+
+			messageElement.classList.remove(
+				"hidden",
+				"flex",
+				"border-slate-200",
+				"bg-slate-50",
+				"text-slate-600",
+				"border-emerald-200",
+				"bg-emerald-50",
+				"text-emerald-700",
+				"border-red-200",
+				"bg-red-50",
+				"text-red-700",
+				"border-blue-200",
+				"bg-blue-50",
+				"text-[#0A3D91]",
+			);
+
+			messageElement.classList.add("flex");
+
+			if (type === "success") {
+				messageElement.classList.add(
+					"border-emerald-200",
+					"bg-emerald-50",
+					"text-emerald-700",
+				);
+
+				return;
+			}
+
+			if (type === "error") {
+				messageElement.classList.add(
+					"border-red-200",
+					"bg-red-50",
+					"text-red-700",
+				);
+
+				return;
+			}
+
+			messageElement.classList.add(
+				"border-blue-200",
+				"bg-blue-50",
+				"text-[#0A3D91]",
+			);
+		};
+
+		const saveCoordinates = (
+			lat: number,
+			lng: number,
+		) => {
+            if (isDisabled() || !Number.isFinite(lat) || !Number.isFinite(lng) || lat < -90 || lat > 90 || lng < -180 || lng > 180) return;
+            // Leaflet puede ofrecer longitudes fuera de [-180,180] al desplazar.
+			latitudInput.value = lat.toFixed(7);
+			longitudInput.value = lng.toFixed(7);
+
+			latitudInput.dispatchEvent(
+				new Event("change", {
+					bubbles: true,
+				}),
+			);
+
+			longitudInput.dispatchEvent(
+				new Event("change", {
+					bubbles: true,
+				}),
+			);
+
+			showMessage(
+				"Ubicación seleccionada correctamente.",
+				"success",
+			);
+		};
+
+		const updateMarker = (
+			lat: number,
+			lng: number,
+			moveMap = false,
+		) => {
+            if (isDisabled() || !Number.isFinite(lat) || !Number.isFinite(lng) || lat < -90 || lat > 90) return;
+            lng = ((lng + 180) % 360 + 360) % 360 - 180;
+			const position = L.latLng(lat, lng);
+
+			if (marker) {
+				marker.setLatLng(position);
+			} else {
+				marker = L.marker(position, {
+					draggable: true,
+					icon: customIcon,
+				}).addTo(map);
+
+				marker.on("dragend", () => {
+					if (!marker || isDisabled()) return;
+
+					const selectedPosition =
+						marker.getLatLng();
+
+					saveCoordinates(
+						selectedPosition.lat,
+						selectedPosition.lng,
+					);
+				});
+			}
+
+			if (moveMap) {
+				map.setView(
+					position,
+					SELECTED_ZOOM,
+				);
+			}
+
+			saveCoordinates(lat, lng);
+		};
+
+		const resetMap = () => {
+            cancelLocation();
+			latitudInput.value = "";
+			longitudInput.value = "";
+
+			if (marker) {
+				map.removeLayer(marker);
+				marker = null;
+			}
+
+			map.setView(
+				DEFAULT_CENTER,
+				DEFAULT_ZOOM,
+				{
+					animate: false,
+				},
+			);
+
+			hideMessage();
+
+			window.setTimeout(() => {
+				map.invalidateSize();
+			}, 100);
+		};
+
+		map.on(
+			"click",
+			(event: L.LeafletMouseEvent) => {
+                if (isDisabled()) return;
+                cancelLocation();
+				updateMarker(
+					event.latlng.lat,
+					event.latlng.lng,
+					false,
+				);
+			},
+		);
+
+		locationButton.addEventListener(
+			"click",
+			() => {
+                if (isDisabled() || locating) return;
+				if (!navigator.geolocation) {
+					showMessage(
+						"Su navegador no permite obtener la ubicación. Seleccione el lugar manualmente en el mapa.",
+						"error",
+					);
+
+					return;
+				}
+
+                const requestId = ++locationRequest;
+                locating = true;
+				locationButton.disabled = true;
+				locationButtonText.textContent =
+					"Obteniendo ubicación...";
+
+				showMessage(
+					"Obteniendo su ubicación actual...",
+					"loading",
+				);
+
+				navigator.geolocation.getCurrentPosition(
+					(position) => {
+                        if (requestId !== locationRequest || isDisabled() || !container.isConnected) return;
+                        locating = false;
+						updateMarker(
+							position.coords.latitude,
+							position.coords.longitude,
+							true,
+						);
+
+						locationButton.disabled = false;
+						locationButtonText.textContent =
+							"Usar mi ubicación";
+					},
+					(error) => {
+                        if (requestId !== locationRequest || isDisabled() || !container.isConnected) return;
+                        locating = false;
+						locationButton.disabled = false;
+						locationButtonText.textContent =
+							"Usar mi ubicación";
+
+						if (
+							error.code ===
+							error.PERMISSION_DENIED
+						) {
+							showMessage(
+								"No se concedió permiso para utilizar la ubicación. Seleccione el lugar manualmente en el mapa.",
+								"error",
+							);
+
+							return;
+						}
+
+						if (
+							error.code ===
+							error.POSITION_UNAVAILABLE
+						) {
+							showMessage(
+								"No fue posible determinar su ubicación. Seleccione el lugar manualmente en el mapa.",
+								"error",
+							);
+
+							return;
+						}
+
+						showMessage(
+							"La ubicación tardó demasiado en responder. Seleccione el lugar manualmente en el mapa.",
+							"error",
+						);
+					},
+					{
+						enableHighAccuracy: true,
+						timeout: 10000,
+						maximumAge: 0,
+					},
+				);
+			},
+		);
+
+		map.whenReady(() => {
+			window.setTimeout(() => {
+				map.invalidateSize();
+			}, 150);
+		});
+
+		mapStates.set(container, {
+			map,
+			reset: resetMap,
+		});
+
+		container.addEventListener("mapa-selector:reset", resetMap);
+        document.addEventListener("astro:before-swap", () => {
+            locationRequest++;
+            observer.disconnect();
+            map.remove();
+            mapStates.delete(container);
+            delete container.dataset.initialized;
+        }, { once: true });
+	};
+
+	const initializeAllMaps = () => {
+		const containers =
+			document.querySelectorAll<MapSelectorElement>(
+				"[data-map-selector]",
+			);
+
+		containers.forEach(initializeMapSelector);
+	};
+
+	initializeAllMaps();
+
+	document.addEventListener(
+		"astro:page-load",
+		initializeAllMaps,
+	);
+</script>

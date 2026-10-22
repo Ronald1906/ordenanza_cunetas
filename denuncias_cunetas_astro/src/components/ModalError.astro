@@ -1,0 +1,276 @@
+<div
+	id="modal-error-global"
+	class="fixed inset-0 z-130 hidden items-center justify-center p-4 sm:p-6"
+	role="alertdialog"
+	aria-modal="true"
+	aria-labelledby="modal-error-titulo"
+	aria-describedby="modal-error-mensaje"
+>
+	<div
+		id="modal-error-fondo"
+		class="absolute inset-0 bg-slate-950/65 backdrop-blur-sm"
+	>
+	</div>
+
+	<div
+		id="modal-error-contenido"
+		class="relative w-full max-w-xl scale-95 overflow-hidden rounded-3xl border border-red-100 bg-white opacity-0 shadow-2xl transition duration-200"
+	>
+		<!-- Cabecera -->
+
+		<div
+			class="border-b border-red-100 bg-linear-to-b from-red-50 to-white px-6 pb-5 pt-6 sm:px-8 sm:pt-8"
+		>
+			<div class="flex items-start justify-between gap-5">
+				<div class="flex items-start gap-4">
+					<div
+						class="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-red-100 text-red-600"
+					>
+						<svg
+							xmlns="http://www.w3.org/2000/svg"
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="2.3"
+							class="h-7 w-7"
+							aria-hidden="true"
+						>
+							<circle cx="12" cy="12" r="10"></circle>
+							<path d="M12 8v4"></path>
+							<path d="M12 16h.01"></path>
+						</svg>
+					</div>
+
+					<div>
+						<p
+							class="text-xs font-bold uppercase tracking-[0.18em] text-red-600"
+						>
+							Atención
+						</p>
+
+						<h2
+							id="modal-error-titulo"
+							class="mt-1 text-xl font-black leading-tight text-[#061B4E] sm:text-2xl"
+						>
+							No fue posible completar la operación
+						</h2>
+					</div>
+				</div>
+
+				<button
+					id="modal-error-cerrar-icono"
+					type="button"
+					class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 focus:outline-none focus:ring-4 focus:ring-slate-100"
+					aria-label="Cerrar mensaje"
+				>
+					<svg
+						xmlns="http://www.w3.org/2000/svg"
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="2"
+						class="h-5 w-5"
+						aria-hidden="true"
+					>
+						<path d="M18 6 6 18"></path>
+						<path d="m6 6 12 12"></path>
+					</svg>
+				</button>
+			</div>
+		</div>
+
+		<!-- Contenido -->
+
+		<div class="px-6 py-6 sm:px-8">
+			<p
+				id="modal-error-mensaje"
+				class="whitespace-pre-line text-base leading-7 text-slate-700"
+			>
+			</p>
+
+			<div
+				id="modal-error-detalle-contenedor"
+				class="mt-5 hidden rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4"
+			>
+				<p
+					id="modal-error-detalle"
+					class="whitespace-pre-line text-sm leading-6 text-slate-600"
+				>
+				</p>
+			</div>
+
+			<p class="mt-5 text-sm leading-6 text-slate-500">
+				Revise la información ingresada e intente nuevamente. Si el
+				problema continúa, inténtelo más tarde.
+			</p>
+		</div>
+
+		<!-- Acciones -->
+
+		<div
+			class="flex justify-end border-t border-slate-200 bg-slate-50 px-6 py-4 sm:px-8"
+		>
+			<button
+				id="modal-error-cerrar"
+				type="button"
+				class="inline-flex h-12 min-w-32 items-center justify-center rounded-xl bg-[#061B4E] px-6 font-bold text-white transition hover:bg-[#0A3D91] focus:outline-none focus:ring-4 focus:ring-blue-200"
+			>
+				Entendido
+			</button>
+		</div>
+	</div>
+</div>
+
+<script>
+	type ModalErrorDetail = {
+		titulo?: string;
+		mensaje: string;
+		detalle?: string;
+		textoBoton?: string;
+	};
+
+	const inicializarModalError = () => {
+		const modal =
+			document.querySelector<HTMLElement>("#modal-error-global");
+
+		if (!modal || modal.dataset.initialized === "true") {
+			return;
+		}
+
+		modal.dataset.initialized = "true";
+
+		const contenido =
+			document.querySelector<HTMLElement>("#modal-error-contenido");
+
+		const fondo =
+			document.querySelector<HTMLElement>("#modal-error-fondo");
+
+		const titulo =
+			document.querySelector<HTMLElement>("#modal-error-titulo");
+
+		const mensaje =
+			document.querySelector<HTMLElement>("#modal-error-mensaje");
+
+		const detalle =
+			document.querySelector<HTMLElement>("#modal-error-detalle");
+
+		const detalleContenedor =
+			document.querySelector<HTMLElement>(
+				"#modal-error-detalle-contenedor",
+			);
+
+		const cerrar =
+			document.querySelector<HTMLButtonElement>("#modal-error-cerrar");
+
+		const cerrarIcono =
+			document.querySelector<HTMLButtonElement>(
+				"#modal-error-cerrar-icono",
+			);
+
+		if (
+			!contenido ||
+			!titulo ||
+			!mensaje ||
+			!detalle ||
+			!detalleContenedor ||
+			!cerrar
+		) {
+			return;
+		}
+
+		let elementoActivoAntesDelModal: HTMLElement | null = null;
+
+		const ocultar = () => {
+			contenido.classList.remove(
+				"scale-100",
+				"opacity-100",
+			);
+
+			contenido.classList.add(
+				"scale-95",
+				"opacity-0",
+			);
+
+			window.setTimeout(() => {
+				modal.classList.add("hidden");
+				modal.classList.remove("flex");
+
+				document.body.style.overflow = "";
+
+				elementoActivoAntesDelModal?.focus();
+			}, 200);
+		};
+
+		const mostrar = (detail: ModalErrorDetail) => {
+			if (!detail?.mensaje) {
+				return;
+			}
+
+			elementoActivoAntesDelModal =
+				document.activeElement as HTMLElement | null;
+
+			titulo.textContent =
+				detail.titulo?.trim() ||
+				"No fue posible completar la operación";
+
+			mensaje.textContent = detail.mensaje;
+
+			if (detail.detalle?.trim()) {
+				detalle.textContent = detail.detalle;
+				detalleContenedor.classList.remove("hidden");
+			} else {
+				detalle.textContent = "";
+				detalleContenedor.classList.add("hidden");
+			}
+
+			cerrar.textContent =
+				detail.textoBoton?.trim() || "Entendido";
+
+			modal.classList.remove("hidden");
+			modal.classList.add("flex");
+
+			document.body.style.overflow = "hidden";
+
+			requestAnimationFrame(() => {
+				contenido.classList.remove(
+					"scale-95",
+					"opacity-0",
+				);
+
+				contenido.classList.add(
+					"scale-100",
+					"opacity-100",
+				);
+			});
+
+			cerrar.focus();
+		};
+
+		cerrar.addEventListener("click", ocultar);
+		cerrarIcono?.addEventListener("click", ocultar);
+		fondo?.addEventListener("click", ocultar);
+
+		document.addEventListener("keydown", (event) => {
+			if (
+				event.key === "Escape" &&
+				!modal.classList.contains("hidden")
+			) {
+				ocultar();
+			}
+		});
+
+		window.addEventListener("app:modal-error", (event) => {
+			const customEvent =
+				event as CustomEvent<ModalErrorDetail>;
+
+			mostrar(customEvent.detail);
+		});
+	};
+
+	inicializarModalError();
+
+	document.addEventListener(
+		"astro:page-load",
+		inicializarModalError,
+	);
+</script>

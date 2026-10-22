@@ -1,0 +1,437 @@
+<div
+	id="modal-respuesta-denuncia"
+	class="fixed inset-0 z-130 hidden items-center justify-center p-4 sm:p-6"
+	role="dialog"
+	aria-modal="true"
+	aria-labelledby="modal-respuesta-titulo"
+	aria-describedby="modal-respuesta-mensaje"
+>
+	<div
+		id="modal-respuesta-fondo"
+		class="absolute inset-0 bg-slate-950/65 backdrop-blur-sm"
+	>
+	</div>
+
+	<div
+		id="modal-respuesta-contenido"
+		class="relative w-full max-w-lg scale-95 overflow-hidden rounded-3xl border border-emerald-100 bg-white opacity-0 shadow-2xl transition duration-200"
+	>
+		<!-- ===================================================== -->
+		<!-- CABECERA -->
+		<!-- ===================================================== -->
+
+		<div
+			class="border-b border-emerald-100 bg-linear-to-b from-emerald-50 to-white px-6 pb-5 pt-7 text-center sm:px-8 sm:pt-8"
+		>
+			<div
+				class="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-emerald-100 text-emerald-600"
+			>
+				<svg
+					xmlns="http://www.w3.org/2000/svg"
+					viewBox="0 0 24 24"
+					fill="none"
+					stroke="currentColor"
+					stroke-width="2.5"
+					class="h-10 w-10"
+					aria-hidden="true"
+				>
+					<path d="M20 6 9 17l-5-5"></path>
+				</svg>
+			</div>
+
+			<p
+				class="mt-5 text-xs font-bold uppercase tracking-[0.2em] text-emerald-600"
+			>
+				Registro completado
+			</p>
+
+			<h2
+				id="modal-respuesta-titulo"
+				class="mt-2 text-2xl font-black text-[#061B4E] sm:text-3xl"
+			>
+				Denuncia recibida
+			</h2>
+
+			<p
+				id="modal-respuesta-mensaje"
+				class="mx-auto mt-3 max-w-md text-sm leading-6 text-slate-600 sm:text-base"
+			>
+				Su denuncia fue registrada correctamente.
+			</p>
+		</div>
+
+		<!-- ===================================================== -->
+		<!-- NÚMERO DE DENUNCIA -->
+		<!-- ===================================================== -->
+
+		<div class="px-6 py-6 sm:px-8">
+			<div
+				class="rounded-2xl border border-blue-100 bg-[#F5FAFF] p-5 text-center"
+			>
+				<p
+					class="text-xs font-bold uppercase tracking-[0.16em] text-slate-500"
+				>
+					Número de denuncia
+				</p>
+
+				<p
+					id="modal-respuesta-numero"
+					class="mt-2 break-all text-2xl font-black tracking-wide text-[#061B4E]"
+				>
+					-
+				</p>
+
+				<button
+					id="modal-respuesta-copiar"
+					type="button"
+					class="mx-auto mt-4 inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-[#0A3D91] bg-white px-5 text-sm font-bold text-[#0A3D91] transition hover:bg-blue-50 focus:outline-none focus:ring-4 focus:ring-blue-100"
+				>
+					<svg
+						id="modal-respuesta-icono-copiar"
+						xmlns="http://www.w3.org/2000/svg"
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="2"
+						class="h-4.5 w-4.5"
+						aria-hidden="true"
+					>
+						<rect x="9" y="9" width="13" height="13" rx="2"></rect>
+						<path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+					</svg>
+
+					<svg
+						id="modal-respuesta-icono-copiado"
+						xmlns="http://www.w3.org/2000/svg"
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="2.5"
+						class="hidden h-4.5 w-4.5"
+						aria-hidden="true"
+					>
+						<path d="M20 6 9 17l-5-5"></path>
+					</svg>
+
+					<span id="modal-respuesta-texto-copiar">
+						Copiar número
+					</span>
+				</button>
+			</div>
+
+			<div
+				class="mt-5 flex items-start gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4"
+			>
+				<svg
+					xmlns="http://www.w3.org/2000/svg"
+					viewBox="0 0 24 24"
+					fill="none"
+					stroke="currentColor"
+					stroke-width="2"
+					class="mt-0.5 h-5 w-5 shrink-0 text-[#0A3D91]"
+					aria-hidden="true"
+				>
+					<circle cx="12" cy="12" r="10"></circle>
+					<path d="M12 16v-4"></path>
+					<path d="M12 8h.01"></path>
+				</svg>
+
+				<p class="text-sm leading-6 text-slate-600">
+					Guarde este número. Lo necesitará para consultar
+					posteriormente el estado y avance de su denuncia.
+				</p>
+			</div>
+		</div>
+
+		<!-- ===================================================== -->
+		<!-- ACCIONES -->
+		<!-- ===================================================== -->
+
+		<div
+			class="border-t border-slate-200 bg-slate-50 px-6 py-4 sm:px-8"
+		>
+			<button
+				id="modal-respuesta-cerrar"
+				type="button"
+				class="inline-flex h-12 w-full items-center justify-center rounded-xl bg-[#061B4E] px-6 font-bold text-white transition hover:bg-[#0A3D91] focus:outline-none focus:ring-4 focus:ring-blue-200"
+			>
+				Aceptar
+			</button>
+		</div>
+	</div>
+</div>
+
+<script>
+	type ModalRespuestaDenunciaDetail = {
+		numero: string;
+		titulo?: string;
+		mensaje?: string;
+	};
+
+	const inicializarModalRespuestaDenuncia = () => {
+		const modal =
+			document.querySelector<HTMLElement>("#modal-respuesta-denuncia");
+
+		if (!modal || modal.dataset.initialized === "true") {
+			return;
+		}
+
+		modal.dataset.initialized = "true";
+
+		const fondo =
+			document.querySelector<HTMLElement>("#modal-respuesta-fondo");
+
+		const contenido =
+			document.querySelector<HTMLElement>("#modal-respuesta-contenido");
+
+		const titulo =
+			document.querySelector<HTMLElement>("#modal-respuesta-titulo");
+
+		const mensaje =
+			document.querySelector<HTMLElement>("#modal-respuesta-mensaje");
+
+		const numero =
+			document.querySelector<HTMLElement>("#modal-respuesta-numero");
+
+		const botonCopiar =
+			document.querySelector<HTMLButtonElement>("#modal-respuesta-copiar");
+
+		const textoCopiar =
+			document.querySelector<HTMLElement>("#modal-respuesta-texto-copiar");
+
+		const iconoCopiar =
+			document.querySelector<HTMLElement>(
+				"#modal-respuesta-icono-copiar",
+			);
+
+		const iconoCopiado =
+			document.querySelector<HTMLElement>(
+				"#modal-respuesta-icono-copiado",
+			);
+
+		const botonCerrar =
+			document.querySelector<HTMLButtonElement>("#modal-respuesta-cerrar");
+
+		if (
+			!contenido ||
+			!titulo ||
+			!mensaje ||
+			!numero ||
+			!botonCopiar ||
+			!textoCopiar ||
+			!botonCerrar
+		) {
+			return;
+		}
+
+		let numeroActual = "";
+		let elementoActivoAntesDelModal: HTMLElement | null = null;
+		let timeoutCopiado: number | null = null;
+
+		// =====================================================
+		// ESTADO DEL BOTÓN COPIAR
+		// =====================================================
+
+		const restablecerBotonCopiar = () => {
+			if (timeoutCopiado !== null) {
+				window.clearTimeout(timeoutCopiado);
+				timeoutCopiado = null;
+			}
+
+			textoCopiar.textContent = "Copiar número";
+
+			iconoCopiar?.classList.remove("hidden");
+			iconoCopiado?.classList.add("hidden");
+		};
+
+		const mostrarCopiado = () => {
+			textoCopiar.textContent = "Número copiado";
+
+			iconoCopiar?.classList.add("hidden");
+			iconoCopiado?.classList.remove("hidden");
+
+			timeoutCopiado = window.setTimeout(() => {
+				restablecerBotonCopiar();
+			}, 2500);
+		};
+
+		// =====================================================
+		// COPIAR
+		// =====================================================
+
+		const copiarTextoFallback = (texto: string) => {
+			const textarea = document.createElement("textarea");
+
+			textarea.value = texto;
+			textarea.setAttribute("readonly", "");
+			textarea.style.position = "fixed";
+			textarea.style.opacity = "0";
+			textarea.style.pointerEvents = "none";
+
+			document.body.appendChild(textarea);
+
+			textarea.select();
+			textarea.setSelectionRange(0, textarea.value.length);
+
+			const copiado = document.execCommand("copy");
+
+			textarea.remove();
+
+			return copiado;
+		};
+
+		const copiarNumero = async () => {
+			if (!numeroActual) {
+				return;
+			}
+
+			try {
+				if (
+					navigator.clipboard &&
+					window.isSecureContext
+				) {
+					await navigator.clipboard.writeText(numeroActual);
+				} else {
+					const copiado = copiarTextoFallback(numeroActual);
+
+					if (!copiado) {
+						throw new Error("No se pudo copiar");
+					}
+				}
+
+				mostrarCopiado();
+
+				window.dispatchEvent(
+					new CustomEvent("app:toast", {
+						detail: {
+							titulo: "Número copiado",
+							mensaje:
+								"El número de denuncia fue copiado al portapapeles.",
+							duracion: 3000,
+						},
+					}),
+				);
+			} catch {
+				window.dispatchEvent(
+					new CustomEvent("app:modal-error", {
+						detail: {
+							titulo: "No fue posible copiar",
+							mensaje:
+								"No se pudo copiar automáticamente el número de denuncia.",
+							detalle:
+								"Puede seleccionar el número mostrado y copiarlo manualmente.",
+						},
+					}),
+				);
+			}
+		};
+
+		// =====================================================
+		// ABRIR
+		// =====================================================
+
+		const mostrar = (detail: ModalRespuestaDenunciaDetail) => {
+			if (!detail?.numero?.trim()) {
+				return;
+			}
+
+			elementoActivoAntesDelModal =
+				document.activeElement as HTMLElement | null;
+
+			numeroActual = detail.numero.trim().toUpperCase();
+
+			titulo.textContent =
+				detail.titulo?.trim() || "Denuncia recibida";
+
+			mensaje.textContent =
+				detail.mensaje?.trim() ||
+				"Su denuncia fue registrada correctamente.";
+
+			numero.textContent = numeroActual;
+
+			restablecerBotonCopiar();
+
+			modal.classList.remove("hidden");
+			modal.classList.add("flex");
+
+			document.body.style.overflow = "hidden";
+
+			requestAnimationFrame(() => {
+				contenido.classList.remove(
+					"scale-95",
+					"opacity-0",
+				);
+
+				contenido.classList.add(
+					"scale-100",
+					"opacity-100",
+				);
+			});
+
+			botonCerrar.focus();
+		};
+
+		// =====================================================
+		// CERRAR
+		// =====================================================
+
+		const ocultar = () => {
+			contenido.classList.remove(
+				"scale-100",
+				"opacity-100",
+			);
+
+			contenido.classList.add(
+				"scale-95",
+				"opacity-0",
+			);
+
+			window.setTimeout(() => {
+				modal.classList.add("hidden");
+				modal.classList.remove("flex");
+
+				document.body.style.overflow = "";
+
+				numeroActual = "";
+
+				restablecerBotonCopiar();
+
+				elementoActivoAntesDelModal?.focus();
+			}, 200);
+		};
+
+		// =====================================================
+		// EVENTOS
+		// =====================================================
+
+		botonCopiar.addEventListener("click", copiarNumero);
+		botonCerrar.addEventListener("click", ocultar);
+		fondo?.addEventListener("click", ocultar);
+
+		document.addEventListener("keydown", (event) => {
+			if (
+				event.key === "Escape" &&
+				!modal.classList.contains("hidden")
+			) {
+				ocultar();
+			}
+		});
+
+		window.addEventListener(
+			"app:modal-respuesta-denuncia",
+			(event) => {
+				const customEvent =
+					event as CustomEvent<ModalRespuestaDenunciaDetail>;
+
+				mostrar(customEvent.detail);
+			},
+		);
+	};
+
+	inicializarModalRespuestaDenuncia();
+
+	document.addEventListener(
+		"astro:page-load",
+		inicializarModalRespuestaDenuncia,
+	);
+</script>

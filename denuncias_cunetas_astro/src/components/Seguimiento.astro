@@ -1,0 +1,987 @@
+---
+const API_URL = import.meta.env.PUBLIC_API_URL;
+const SEGUIMIENTO_DENUNCIA_URL = `${API_URL}/public/denuncias/seguimiento`;
+---
+
+<section class="min-h-full bg-slate-100 px-4 py-10 sm:px-6 lg:px-8">
+	<div class="mx-auto w-full max-w-5xl">
+		<div
+			class="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-xl shadow-slate-900/5"
+		>
+			<!-- ===================================================== -->
+			<!-- CABECERA -->
+			<!-- ===================================================== -->
+
+			<div
+				class="border-b border-slate-200 px-5 pb-6 pt-7 sm:px-8 sm:pb-7 sm:pt-8"
+			>
+				<p
+					class="text-xs font-bold uppercase tracking-[0.2em] text-[#0A3D91]"
+				>
+					Consulta ciudadana
+				</p>
+
+				<h1
+					class="mt-2 text-3xl font-black leading-tight text-[#061B4E] sm:text-4xl"
+				>
+					Seguimiento de denuncia
+				</h1>
+
+				<p
+					class="mt-3 max-w-3xl text-sm leading-6 text-slate-600 sm:text-base"
+				>
+					Ingrese el número asignado al momento de registrar su
+					denuncia para consultar su estado actual y el historial de
+					atención.
+				</p>
+			</div>
+
+			<div class="p-5 sm:p-8">
+				<!-- ================================================= -->
+				<!-- FORMULARIO DE CONSULTA -->
+				<!-- ================================================= -->
+
+				<form
+					id="form-seguimiento"
+					data-endpoint={SEGUIMIENTO_DENUNCIA_URL}
+					novalidate
+				>
+					<div
+						class="rounded-2xl border border-slate-200 bg-slate-50 p-5 sm:p-6"
+					>
+						<div class="flex items-start gap-3">
+							<span
+								class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#EAF4FF] text-[#0A3D91]"
+							>
+								<svg
+									xmlns="http://www.w3.org/2000/svg"
+									viewBox="0 0 24 24"
+									fill="none"
+									stroke="currentColor"
+									stroke-width="2"
+									class="h-5 w-5"
+									aria-hidden="true"
+								>
+									<circle cx="11" cy="11" r="8"></circle>
+									<path d="m21 21-4.35-4.35"></path>
+								</svg>
+							</span>
+
+							<div>
+								<h2 class="font-extrabold text-[#061B4E]">
+									Consultar una denuncia
+								</h2>
+
+								<p
+									class="mt-1 text-sm leading-6 text-slate-600"
+								>
+									El número tiene un formato similar a
+									<span
+										class="ml-1 inline-flex rounded-md bg-blue-50 px-2 py-0.5 font-bold tracking-wide text-[#0A3D91]"
+									>
+										DC-2026-000001
+									</span>
+								</p>
+							</div>
+						</div>
+
+						<div class="mt-5 flex flex-col gap-3 sm:flex-row">
+							<div class="flex-1">
+								<label
+									for="numero-denuncia"
+									class="mb-2 block text-sm font-semibold text-slate-700"
+								>
+									Número de denuncia
+									<span class="text-red-600">*</span>
+								</label>
+
+								<input
+									id="numero-denuncia"
+									name="numeroDenuncia"
+									type="text"
+									required
+									maxlength="14"
+									autocomplete="off"
+									spellcheck="false"
+									placeholder="Ejemplo: DC-2026-000001"
+									class="h-12 w-full rounded-xl border border-slate-300 bg-white px-4 text-sm font-semibold uppercase tracking-wide text-slate-700 outline-none transition placeholder:font-normal placeholder:normal-case placeholder:tracking-normal placeholder:text-slate-400 focus:border-[#0A3D91] focus:ring-4 focus:ring-blue-100"
+								/>
+							</div>
+
+							<div class="sm:flex sm:items-end">
+								<button
+									id="btn-consultar"
+									type="submit"
+									class="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#061B4E] px-7 font-bold text-white shadow-lg shadow-blue-950/20 transition hover:bg-[#0A3D91] focus:outline-none focus:ring-4 focus:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+								>
+									<svg
+										id="icono-consultar"
+										xmlns="http://www.w3.org/2000/svg"
+										viewBox="0 0 24 24"
+										fill="none"
+										stroke="currentColor"
+										stroke-width="2"
+										class="h-5 w-5"
+										aria-hidden="true"
+									>
+										<circle cx="11" cy="11" r="8"></circle>
+										<path d="m21 21-4.35-4.35"></path>
+									</svg>
+
+									<svg
+										id="icono-cargando"
+										class="hidden h-5 w-5 animate-spin"
+										xmlns="http://www.w3.org/2000/svg"
+										fill="none"
+										viewBox="0 0 24 24"
+										aria-hidden="true"
+									>
+										<circle
+											class="opacity-25"
+											cx="12"
+											cy="12"
+											r="10"
+											stroke="currentColor"
+											stroke-width="4"
+										>
+										</circle>
+
+										<path
+											class="opacity-75"
+											fill="currentColor"
+											d="M4 12a8 8 0 0 1 8-8v4a4 4 0 0 0-4 4H4Z"
+										>
+										</path>
+									</svg>
+
+									<span id="texto-btn-consultar">
+										Consultar
+									</span>
+								</button>
+							</div>
+						</div>
+					</div>
+				</form>
+
+				<!-- ===================================================== -->
+				<!-- RESULTADO -->
+				<!-- ===================================================== -->
+
+				<div id="resultado-seguimiento" class="mt-8 hidden">
+					<!-- ================================================= -->
+					<!-- RESUMEN -->
+					<!-- ================================================= -->
+
+					<div
+						class="overflow-hidden rounded-2xl border border-slate-200 bg-white"
+					>
+						<div
+							class="border-b border-slate-200 bg-[#F8FAFC] px-5 py-5 sm:px-6"
+						>
+							<div
+								class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"
+							>
+								<div>
+									<p
+										class="text-xs font-bold uppercase tracking-[0.16em] text-slate-500"
+									>
+										Número de denuncia
+									</p>
+
+									<p
+										id="resultado-numero"
+										class="mt-1 text-xl font-black tracking-wide text-[#061B4E] sm:text-2xl"
+									>
+										-
+									</p>
+								</div>
+
+								<div class="sm:text-right">
+									<p
+										class="mb-2 text-xs font-bold uppercase tracking-[0.16em] text-slate-500"
+									>
+										Estado actual
+									</p>
+
+									<span
+										id="resultado-estado"
+										class="inline-flex items-center rounded-full border px-3 py-1.5 text-sm font-bold"
+									>
+										-
+									</span>
+								</div>
+							</div>
+						</div>
+
+						<div class="grid gap-6 p-5 sm:grid-cols-2 sm:p-6">
+							<div>
+								<p
+									class="text-xs font-bold uppercase tracking-[0.14em] text-slate-500"
+								>
+									Fecha de registro
+								</p>
+
+								<p
+									id="resultado-fecha"
+									class="mt-2 font-bold text-slate-800"
+								>
+									-
+								</p>
+							</div>
+
+							<div>
+								<p
+									class="text-xs font-bold uppercase tracking-[0.14em] text-slate-500"
+								>
+									Estado
+								</p>
+
+								<p
+									id="resultado-estado-nombre"
+									class="mt-2 font-bold text-slate-800"
+								>
+									-
+								</p>
+							</div>
+
+							<div class="sm:col-span-2">
+								<p
+									class="text-xs font-bold uppercase tracking-[0.14em] text-slate-500"
+								>
+									Descripción registrada
+								</p>
+
+								<p
+									id="resultado-descripcion"
+									class="mt-2 whitespace-pre-line text-sm leading-7 text-slate-600"
+								>
+									-
+								</p>
+							</div>
+						</div>
+					</div>
+
+					<!-- ================================================= -->
+					<!-- HISTORIAL -->
+					<!-- ================================================= -->
+
+					<div
+						class="mt-6 rounded-2xl border border-slate-200 bg-white p-5 sm:p-6"
+					>
+						<div class="flex items-start gap-3">
+							<span
+								class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#EAF4FF] text-[#0A3D91]"
+							>
+								<svg
+									xmlns="http://www.w3.org/2000/svg"
+									viewBox="0 0 24 24"
+									fill="none"
+									stroke="currentColor"
+									stroke-width="2"
+									class="h-5 w-5"
+									aria-hidden="true"
+								>
+									<path d="M3 12a9 9 0 1 0 9-9"></path>
+									<path d="M3 3v6h6"></path>
+									<path d="M12 7v5l3 2"></path>
+								</svg>
+							</span>
+
+							<div>
+								<h2 class="font-extrabold text-[#061B4E]">
+									Historial de seguimiento
+								</h2>
+
+								<p
+									class="mt-1 text-sm leading-6 text-slate-600"
+								>
+									Consulte los cambios registrados durante la
+									atención de la denuncia.
+								</p>
+							</div>
+						</div>
+
+						<div id="historial-seguimiento" class="mt-6"></div>
+
+						<p
+							id="sin-historial"
+							class="mt-6 hidden rounded-xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-500"
+						>
+							No existen movimientos registrados para esta
+							denuncia.
+						</p>
+					</div>
+
+					<!-- ================================================= -->
+					<!-- INFORMACIÓN -->
+					<!-- ================================================= -->
+
+					<div
+						class="mt-6 rounded-2xl border border-blue-100 bg-[#F5FAFF] px-5 py-4"
+					>
+						<div class="flex items-start gap-3">
+							<svg
+								xmlns="http://www.w3.org/2000/svg"
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								stroke-width="2"
+								class="mt-0.5 h-5 w-5 shrink-0 text-[#0A3D91]"
+								aria-hidden="true"
+							>
+								<circle cx="12" cy="12" r="10"></circle>
+								<path d="M12 16v-4"></path>
+								<path d="M12 8h.01"></path>
+							</svg>
+
+							<p class="text-sm leading-6 text-slate-600">
+								Conserve su número de denuncia. Podrá utilizarlo
+								nuevamente para consultar futuras
+								actualizaciones del trámite.
+							</p>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+</section>
+
+<script>
+	type HistorialPublico = {
+		estado: string;
+		nombre: string;
+		observacion: string | null;
+		fecha: string;
+	};
+
+	type SeguimientoResponse = {
+		numero_denuncia: string;
+		fecha_denuncia: string;
+		estado: string;
+		estado_nombre: string;
+		descripcion: string;
+		historial: HistorialPublico[];
+	};
+
+	type ErrorResponse = {
+		error?: string;
+	};
+
+	type ModalErrorDetail = {
+		titulo: string;
+		mensaje: string;
+		detalle?: string;
+	};
+
+	const inicializarSeguimiento = () => {
+		const formulario =
+			document.querySelector<HTMLFormElement>("#form-seguimiento");
+
+		if (!formulario || formulario.dataset.initialized === "true") {
+			return;
+		}
+
+		formulario.dataset.initialized = "true";
+
+		const endpoint = formulario.dataset.endpoint;
+
+		const inputNumero =
+			document.querySelector<HTMLInputElement>("#numero-denuncia");
+
+		const botonConsultar =
+			document.querySelector<HTMLButtonElement>("#btn-consultar");
+
+		const textoBoton =
+			document.querySelector<HTMLElement>("#texto-btn-consultar");
+
+		const iconoConsultar =
+			document.querySelector<HTMLElement>("#icono-consultar");
+
+		const iconoCargando =
+			document.querySelector<HTMLElement>("#icono-cargando");
+
+		const resultado =
+			document.querySelector<HTMLElement>("#resultado-seguimiento");
+
+		const resultadoNumero =
+			document.querySelector<HTMLElement>("#resultado-numero");
+
+		const resultadoFecha =
+			document.querySelector<HTMLElement>("#resultado-fecha");
+
+		const resultadoEstado =
+			document.querySelector<HTMLElement>("#resultado-estado");
+
+		const resultadoEstadoNombre =
+			document.querySelector<HTMLElement>(
+				"#resultado-estado-nombre",
+			);
+
+		const resultadoDescripcion =
+			document.querySelector<HTMLElement>(
+				"#resultado-descripcion",
+			);
+
+		const historialContenedor =
+			document.querySelector<HTMLElement>(
+				"#historial-seguimiento",
+			);
+
+		const sinHistorial =
+			document.querySelector<HTMLElement>("#sin-historial");
+
+		let consultando = false;
+
+		// =====================================================
+		// COMPONENTES GLOBALES
+		// =====================================================
+
+		const mostrarModalError = (detail: ModalErrorDetail) => {
+			window.dispatchEvent(
+				new CustomEvent("app:modal-error", {
+					detail,
+				}),
+			);
+		};
+
+		const mostrarToast = (
+			titulo: string,
+			mensaje: string,
+		) => {
+			window.dispatchEvent(
+				new CustomEvent("app:toast", {
+					detail: {
+						titulo,
+						mensaje,
+						duracion: 3500,
+					},
+				}),
+			);
+		};
+
+		// =====================================================
+		// NORMALIZAR NÚMERO
+		// =====================================================
+
+		const normalizarNumero = (value: string) => {
+			return value.trim().toUpperCase();
+		};
+
+		// =====================================================
+		// FECHA DE DENUNCIA
+		// =====================================================
+
+		const formatearFechaDenuncia = (value: string) => {
+			if (!value) {
+				return "-";
+			}
+
+			const fechaParte = value.slice(0, 10);
+			const partes = fechaParte.split("-");
+
+			if (partes.length !== 3) {
+				return value;
+			}
+
+			const [anio, mes, dia] = partes;
+
+			const fecha = new Date(
+				Number(anio),
+				Number(mes) - 1,
+				Number(dia),
+			);
+
+			if (Number.isNaN(fecha.getTime())) {
+				return value;
+			}
+
+			return new Intl.DateTimeFormat("es-EC", {
+				day: "2-digit",
+				month: "long",
+				year: "numeric",
+			}).format(fecha);
+		};
+
+		// =====================================================
+		// FECHA DEL HISTORIAL
+		// =====================================================
+
+		const formatearFechaHora = (value: string) => {
+			const fecha = new Date(value);
+
+			if (Number.isNaN(fecha.getTime())) {
+				return value;
+			}
+
+			return new Intl.DateTimeFormat("es-EC", {
+				day: "2-digit",
+				month: "long",
+				year: "numeric",
+				hour: "2-digit",
+				minute: "2-digit",
+			}).format(fecha);
+		};
+
+		// =====================================================
+		// ESTILO DEL ESTADO
+		// =====================================================
+
+		const clasesEstado: Record<string, string> = {
+			REGISTRADA:
+				"border-blue-200 bg-blue-50 text-blue-700",
+
+			EN_REVISION:
+				"border-amber-200 bg-amber-50 text-amber-700",
+
+			EN_TRAMITE:
+				"border-indigo-200 bg-indigo-50 text-indigo-700",
+
+			ATENDIDA:
+				"border-emerald-200 bg-emerald-50 text-emerald-700",
+
+			CERRADA:
+				"border-slate-300 bg-slate-100 text-slate-700",
+
+			DESCARTADA:
+				"border-red-200 bg-red-50 text-red-700",
+		};
+
+		const actualizarEstado = (
+			elemento: HTMLElement,
+			codigo: string,
+			nombre: string,
+		) => {
+			const clasesBase = [
+				"border-blue-200",
+				"bg-blue-50",
+				"text-blue-700",
+				"border-amber-200",
+				"bg-amber-50",
+				"text-amber-700",
+				"border-indigo-200",
+				"bg-indigo-50",
+				"text-indigo-700",
+				"border-emerald-200",
+				"bg-emerald-50",
+				"text-emerald-700",
+				"border-slate-300",
+				"bg-slate-100",
+				"text-slate-700",
+				"border-red-200",
+				"bg-red-50",
+				"text-red-700",
+			];
+
+			elemento.classList.remove(...clasesBase);
+
+			const clases =
+				clasesEstado[codigo] ??
+				"border-slate-200 bg-slate-50 text-slate-700";
+
+			elemento.classList.add(...clases.split(" "));
+			elemento.textContent = nombre;
+		};
+
+		// =====================================================
+		// ESTADO DE CONSULTA
+		// =====================================================
+
+		const cambiarEstadoConsulta = (estado: boolean) => {
+			consultando = estado;
+
+			if (botonConsultar) {
+				botonConsultar.disabled = estado;
+			}
+
+			if (inputNumero) {
+				inputNumero.disabled = estado;
+			}
+
+			if (textoBoton) {
+				textoBoton.textContent = estado
+					? "Consultando..."
+					: "Consultar";
+			}
+
+			iconoConsultar?.classList.toggle("hidden", estado);
+			iconoCargando?.classList.toggle("hidden", !estado);
+		};
+
+		// =====================================================
+		// OCULTAR RESULTADO
+		// =====================================================
+
+		const ocultarResultado = () => {
+			resultado?.classList.add("hidden");
+
+			if (historialContenedor) {
+				historialContenedor.innerHTML = "";
+			}
+		};
+
+		// =====================================================
+		// CREAR ITEM DEL HISTORIAL
+		// =====================================================
+
+		const crearHistorialItem = (
+			item: HistorialPublico,
+			ultimo: boolean,
+		) => {
+			const contenedor = document.createElement("div");
+			contenedor.className = "relative flex gap-4";
+
+			const columnaIndicador = document.createElement("div");
+			columnaIndicador.className =
+				"relative flex w-8 shrink-0 justify-center";
+
+			const indicador = document.createElement("span");
+			indicador.className =
+				"relative z-10 mt-1 flex h-8 w-8 items-center justify-center rounded-full border-4 border-white bg-[#0A3D91] shadow";
+
+			const punto = document.createElement("span");
+			punto.className =
+				"h-2.5 w-2.5 rounded-full bg-white";
+
+			indicador.appendChild(punto);
+			columnaIndicador.appendChild(indicador);
+
+			if (!ultimo) {
+				const linea = document.createElement("span");
+
+				linea.className =
+					"absolute left-1/2 top-8 h-[calc(100%-1rem)] w-px -translate-x-1/2 bg-slate-200";
+
+				columnaIndicador.appendChild(linea);
+			}
+
+			const contenido = document.createElement("div");
+
+			contenido.className = ultimo
+				? "min-w-0 flex-1 pb-1"
+				: "min-w-0 flex-1 pb-7";
+
+			const cabecera = document.createElement("div");
+
+			cabecera.className =
+				"flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between";
+
+			const nombre = document.createElement("p");
+
+			nombre.className =
+				"font-extrabold text-[#061B4E]";
+
+			nombre.textContent = item.nombre;
+
+			const fecha = document.createElement("p");
+
+			fecha.className =
+				"text-xs font-medium text-slate-500";
+
+			fecha.textContent =
+				formatearFechaHora(item.fecha);
+
+			cabecera.appendChild(nombre);
+			cabecera.appendChild(fecha);
+
+			const codigo = document.createElement("p");
+
+			codigo.className =
+				"mt-1 text-xs font-bold uppercase tracking-[0.12em] text-[#0A3D91]";
+
+			codigo.textContent =
+				item.estado.replaceAll("_", " ");
+
+			contenido.appendChild(cabecera);
+			contenido.appendChild(codigo);
+
+			if (item.observacion?.trim()) {
+				const observacion = document.createElement("p");
+
+				observacion.className =
+					"mt-2 rounded-xl bg-slate-50 px-4 py-3 text-sm leading-6 text-slate-600";
+
+				observacion.textContent =
+					item.observacion;
+
+				contenido.appendChild(observacion);
+			}
+
+			contenedor.appendChild(columnaIndicador);
+			contenedor.appendChild(contenido);
+
+			return contenedor;
+		};
+
+		// =====================================================
+		// MOSTRAR RESULTADO
+		// =====================================================
+
+		const mostrarResultado = (data: SeguimientoResponse) => {
+			if (
+				!resultado ||
+				!resultadoNumero ||
+				!resultadoFecha ||
+				!resultadoEstado ||
+				!resultadoEstadoNombre ||
+				!resultadoDescripcion ||
+				!historialContenedor
+			) {
+				return;
+			}
+
+			resultadoNumero.textContent =
+				data.numero_denuncia;
+
+			resultadoFecha.textContent =
+				formatearFechaDenuncia(
+					data.fecha_denuncia,
+				);
+
+			resultadoEstadoNombre.textContent =
+				data.estado_nombre;
+
+			resultadoDescripcion.textContent =
+				data.descripcion;
+
+			actualizarEstado(
+				resultadoEstado,
+				data.estado,
+				data.estado_nombre,
+			);
+
+			historialContenedor.innerHTML = "";
+
+			const historial =
+				Array.isArray(data.historial)
+					? data.historial
+					: [];
+
+			sinHistorial?.classList.toggle(
+				"hidden",
+				historial.length > 0,
+			);
+
+			historial.forEach((item, index) => {
+				historialContenedor.appendChild(
+					crearHistorialItem(
+						item,
+						index === historial.length - 1,
+					),
+				);
+			});
+
+			resultado.classList.remove("hidden");
+
+			resultado.scrollIntoView({
+				behavior: "smooth",
+				block: "start",
+			});
+		};
+
+		// =====================================================
+		// INPUT
+		// =====================================================
+
+		inputNumero?.addEventListener("input", () => {
+			inputNumero.value =
+				inputNumero.value.toUpperCase();
+
+			/*
+				Si el ciudadano modifica el número después de
+				haber realizado una consulta, ocultamos el
+				resultado anterior para evitar confusión.
+			*/
+			ocultarResultado();
+		});
+
+		// =====================================================
+		// CONSULTA
+		// =====================================================
+
+		formulario.addEventListener(
+			"submit",
+			async (event) => {
+				event.preventDefault();
+
+				if (consultando) {
+					return;
+				}
+
+				if (!formulario.checkValidity()) {
+					formulario.reportValidity();
+					return;
+				}
+
+				if (!endpoint) {
+					mostrarModalError({
+						titulo: "Servicio no configurado",
+						mensaje:
+							"No se encuentra configurada la dirección del servicio de seguimiento.",
+						detalle:
+							"No es posible realizar la consulta en este momento.",
+					});
+
+					return;
+				}
+
+				const numero =
+					normalizarNumero(
+						inputNumero?.value ?? "",
+					);
+
+				if (!numero) {
+					mostrarModalError({
+						titulo: "Número requerido",
+						mensaje:
+							"Debe ingresar el número de denuncia que recibió al realizar el registro.",
+					});
+
+					return;
+				}
+
+				if (!/^DC-\d{4}-\d{6}$/.test(numero)) {
+					mostrarModalError({
+						titulo: "Número de denuncia no válido",
+						mensaje:
+							"El número ingresado no tiene el formato esperado.",
+						detalle:
+							"Verifique el número e ingréselo nuevamente. Ejemplo: DC-2026-000001.",
+					});
+
+					inputNumero?.focus();
+
+					return;
+				}
+
+				ocultarResultado();
+				cambiarEstadoConsulta(true);
+
+				try {
+					const response = await fetch(
+						`${endpoint}/${encodeURIComponent(numero)}`,
+						{
+							method: "GET",
+							headers: {
+								Accept: "application/json",
+							},
+						},
+					);
+
+					let data:
+						| SeguimientoResponse
+						| ErrorResponse
+						| null = null;
+
+					try {
+						data = await response.json();
+					} catch {
+						data = null;
+					}
+
+					// =============================================
+					// RESPUESTAS NEGATIVAS
+					// =============================================
+
+					if (!response.ok) {
+						const mensaje =
+							data &&
+							"error" in data &&
+							data.error
+								? data.error
+								: "No fue posible consultar la denuncia.";
+
+						if (response.status === 404) {
+							mostrarModalError({
+								titulo: "Denuncia no encontrada",
+								mensaje,
+								detalle:
+									"Verifique que el número ingresado sea correcto e intente nuevamente.",
+							});
+
+							return;
+						}
+
+						if (response.status >= 500) {
+							mostrarModalError({
+								titulo:
+									"No fue posible realizar la consulta",
+								mensaje,
+								detalle:
+									"El servicio presentó un inconveniente. Intente nuevamente en unos momentos.",
+							});
+
+							return;
+						}
+
+						mostrarModalError({
+							titulo: "No fue posible realizar la consulta",
+							mensaje,
+							detalle:
+								"Revise el número ingresado e intente nuevamente.",
+						});
+
+						return;
+					}
+
+					// =============================================
+					// VALIDAR RESPUESTA
+					// =============================================
+
+					if (
+						!data ||
+						!("numero_denuncia" in data) ||
+						!("estado" in data) ||
+						!("estado_nombre" in data)
+					) {
+						mostrarModalError({
+							titulo: "Respuesta no válida",
+							mensaje:
+								"El servicio no devolvió correctamente la información de la denuncia.",
+							detalle:
+								"Intente realizar la consulta nuevamente en unos momentos.",
+						});
+
+						return;
+					}
+
+					// =============================================
+					// RESPUESTA CORRECTA
+					// =============================================
+
+					const seguimiento =
+						data as SeguimientoResponse;
+
+					mostrarResultado(seguimiento);
+
+					mostrarToast(
+						"Consulta realizada",
+						`Se encontró la información de la denuncia ${seguimiento.numero_denuncia}.`,
+					);
+				} catch (error) {
+					console.error(
+						"[SEGUIMIENTO] Error de comunicación:",
+						error,
+					);
+
+					mostrarModalError({
+						titulo: "No fue posible realizar la consulta",
+						mensaje:
+							"No pudimos comunicarnos con el servicio de seguimiento.",
+						detalle:
+							"Verifique su conexión e intente nuevamente en unos momentos.",
+					});
+				} finally {
+					cambiarEstadoConsulta(false);
+				}
+			},
+		);
+	};
+
+	inicializarSeguimiento();
+
+	document.addEventListener(
+		"astro:page-load",
+		inicializarSeguimiento,
+	);
+</script>

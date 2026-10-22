@@ -1,0 +1,193 @@
+<div
+	id="toast-global"
+	class="pointer-events-none fixed right-4 top-4 z-120 hidden w-[calc(100%-2rem)] max-w-md sm:right-6 sm:top-6 sm:w-full"
+	aria-live="polite"
+	aria-atomic="true"
+>
+	<div
+		id="toast-global-contenido"
+		class="pointer-events-auto -translate-y-3 overflow-hidden rounded-2xl border border-emerald-200 bg-white opacity-0 shadow-2xl shadow-slate-950/10 transition duration-300"
+		role="status"
+	>
+		<div class="flex items-start gap-4 p-4 sm:p-5">
+			<div
+				class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-emerald-100 text-emerald-600"
+			>
+				<svg
+					xmlns="http://www.w3.org/2000/svg"
+					viewBox="0 0 24 24"
+					fill="none"
+					stroke="currentColor"
+					stroke-width="2.5"
+					class="h-6 w-6"
+					aria-hidden="true"
+				>
+					<path d="M20 6 9 17l-5-5"></path>
+				</svg>
+			</div>
+
+			<div class="min-w-0 flex-1">
+				<p
+					id="toast-global-titulo"
+					class="font-extrabold text-[#061B4E]"
+				>
+					Proceso completado
+				</p>
+
+				<p
+					id="toast-global-mensaje"
+					class="mt-1 text-sm leading-6 text-slate-600"
+				>
+				</p>
+			</div>
+
+			<button
+				id="toast-global-cerrar"
+				type="button"
+				class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 focus:outline-none focus:ring-4 focus:ring-slate-100"
+				aria-label="Cerrar notificación"
+			>
+				<svg
+					xmlns="http://www.w3.org/2000/svg"
+					viewBox="0 0 24 24"
+					fill="none"
+					stroke="currentColor"
+					stroke-width="2"
+					class="h-5 w-5"
+					aria-hidden="true"
+				>
+					<path d="M18 6 6 18"></path>
+					<path d="m6 6 12 12"></path>
+				</svg>
+			</button>
+		</div>
+
+		<div class="h-1 bg-emerald-100">
+			<div
+				id="toast-global-progreso"
+				class="h-full w-full origin-left bg-emerald-500"
+			>
+			</div>
+		</div>
+	</div>
+</div>
+
+<script>
+	type ToastDetail = {
+		titulo?: string;
+		mensaje: string;
+		duracion?: number;
+	};
+
+	const inicializarToast = () => {
+		const toast = document.querySelector<HTMLElement>("#toast-global");
+
+		if (!toast || toast.dataset.initialized === "true") {
+			return;
+		}
+
+		toast.dataset.initialized = "true";
+
+		const contenido =
+			document.querySelector<HTMLElement>("#toast-global-contenido");
+
+		const titulo =
+			document.querySelector<HTMLElement>("#toast-global-titulo");
+
+		const mensaje =
+			document.querySelector<HTMLElement>("#toast-global-mensaje");
+
+		const cerrar =
+			document.querySelector<HTMLButtonElement>("#toast-global-cerrar");
+
+		const progreso =
+			document.querySelector<HTMLElement>("#toast-global-progreso");
+
+		if (!contenido || !titulo || !mensaje || !cerrar || !progreso) {
+			return;
+		}
+
+		let timeout: number | null = null;
+
+		const ocultar = () => {
+			if (timeout !== null) {
+				window.clearTimeout(timeout);
+				timeout = null;
+			}
+
+			contenido.classList.remove(
+				"translate-y-0",
+				"opacity-100",
+			);
+
+			contenido.classList.add(
+				"translate-y-[-12px]",
+				"opacity-0",
+			);
+
+			window.setTimeout(() => {
+				toast.classList.add("hidden");
+			}, 300);
+		};
+
+		const mostrar = (detail: ToastDetail) => {
+			if (!detail?.mensaje) {
+				return;
+			}
+
+			const duracion = Math.max(
+				2000,
+				detail.duracion ?? 4500,
+			);
+
+			if (timeout !== null) {
+				window.clearTimeout(timeout);
+			}
+
+			titulo.textContent =
+				detail.titulo?.trim() || "Proceso completado";
+
+			mensaje.textContent = detail.mensaje;
+
+			toast.classList.remove("hidden");
+
+			progreso.style.transition = "none";
+			progreso.style.transform = "scaleX(1)";
+
+			requestAnimationFrame(() => {
+				contenido.classList.remove(
+					"translate-y-[-12px]",
+					"opacity-0",
+				);
+
+				contenido.classList.add(
+					"translate-y-0",
+					"opacity-100",
+				);
+
+				requestAnimationFrame(() => {
+					progreso.style.transition =
+						`transform ${duracion}ms linear`;
+
+					progreso.style.transform = "scaleX(0)";
+				});
+			});
+
+			timeout = window.setTimeout(ocultar, duracion);
+		};
+
+		cerrar.addEventListener("click", ocultar);
+
+		window.addEventListener("app:toast", (event) => {
+			const customEvent = event as CustomEvent<ToastDetail>;
+			mostrar(customEvent.detail);
+		});
+	};
+
+	inicializarToast();
+
+	document.addEventListener(
+		"astro:page-load",
+		inicializarToast,
+	);
+</script>

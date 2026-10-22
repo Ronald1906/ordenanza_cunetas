@@ -1,0 +1,987 @@
+---
+import MapaSelector from "./MapaSelector.astro";
+
+const API_URL = (import.meta.env.PUBLIC_API_URL ?? "").trim().replace(/\/+$/, "");
+const REGISTRAR_DENUNCIA_URL = API_URL ? `${API_URL}/public/denuncias` : "";
+const CATALOGOS_DENUNCIA_URL = API_URL ? `${API_URL}/public/denuncias/catalogos` : "";
+---
+
+<section class="min-h-full bg-slate-100 px-4 py-10 sm:px-6 lg:px-8">
+	<div class="mx-auto w-full max-w-7xl">
+		<div
+			class="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-xl shadow-slate-900/5"
+		>
+			<div
+				class="border-b border-slate-200 px-5 pb-6 pt-7 sm:px-8 sm:pb-7 sm:pt-8"
+			>
+				<p
+					class="text-xs font-bold uppercase tracking-[0.2em] text-[#0A3D91]"
+				>
+					Formulario ciudadano
+				</p>
+
+				<h1
+					class="mt-2 text-3xl font-black leading-tight text-[#061B4E] sm:text-4xl"
+				>
+					Denuncia para limpieza de cunetas
+				</h1>
+
+				<p
+					class="mt-3 max-w-3xl text-sm leading-6 text-slate-600 sm:text-base"
+				>
+					Complete la información solicitada para registrar el
+					problema. Los campos marcados con asterisco son
+					obligatorios.
+				</p>
+			</div>
+
+			<form
+				id="form-denuncia"
+				class="p-5 sm:p-8"
+				data-endpoint={REGISTRAR_DENUNCIA_URL}
+                data-catalogos-endpoint={CATALOGOS_DENUNCIA_URL}
+				novalidate
+			>
+                <div id="estado-catalogos" role="status" aria-live="polite" class="mb-6 rounded-xl border border-blue-100 bg-blue-50 p-4 text-sm font-semibold text-[#061B4E]">
+                    <p id="mensaje-catalogos">CARGANDO OPCIONES DEL FORMULARIO...</p>
+                    <button id="btn-reintentar-catalogos" type="button" class="mt-3 hidden rounded-lg border border-current px-4 py-2 font-bold">REINTENTAR</button>
+                </div>
+                <noscript><p class="mb-4 text-sm text-red-700">ACTIVE JAVASCRIPT PARA CARGAR Y ENVIAR EL FORMULARIO.</p></noscript>
+                <p id="estado-registro" role="status" aria-live="polite" class="mb-5 hidden rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900"></p>
+                <fieldset id="campos-formulario" disabled class="min-w-0">
+
+				<!-- ================================================= -->
+				<!-- TIPO DE DENUNCIA -->
+				<!-- ================================================= -->
+
+				<fieldset>
+					<legend
+						class="mb-5 flex w-full items-center gap-3 border-b border-slate-200 pb-3"
+					>
+						<span
+							class="flex h-9 w-9 items-center justify-center rounded-xl bg-[#EAF4FF] text-[#0A3D91]"
+						>
+							<svg
+								xmlns="http://www.w3.org/2000/svg"
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								stroke-width="2"
+								class="h-5 w-5"
+								aria-hidden="true"
+							>
+								<path
+									d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"
+								></path>
+								<path d="M12 8v4"></path>
+								<path d="M12 16h.01"></path>
+							</svg>
+						</span>
+
+						<span class="text-lg font-extrabold text-[#061B4E]">
+							Tipo de denuncia
+						</span>
+					</legend>
+
+					<p class="mb-5 max-w-3xl text-sm leading-6 text-slate-600">
+						Seleccione si desea proporcionar sus datos personales o
+						registrar la denuncia de manera anónima.
+					</p>
+
+					<div id="opciones-tipo-denuncia" class="grid gap-4 md:grid-cols-2"></div>
+                </fieldset>
+
+				<!-- ================================================= -->
+				<!-- DATOS DEL DENUNCIANTE -->
+				<!-- ================================================= -->
+
+				<fieldset id="seccion-denunciante" class="mt-9 hidden" disabled>
+					<legend
+						class="mb-5 flex w-full items-center gap-3 border-b border-slate-200 pb-3"
+					>
+						<span
+							class="flex h-9 w-9 items-center justify-center rounded-xl bg-[#EAF4FF] text-[#0A3D91]"
+						>
+							<svg
+								xmlns="http://www.w3.org/2000/svg"
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								stroke-width="2"
+								class="h-5 w-5"
+								aria-hidden="true"
+							>
+								<path d="M20 21a8 8 0 0 0-16 0"></path>
+								<circle cx="12" cy="7" r="4"></circle>
+							</svg>
+						</span>
+
+						<span class="text-lg font-extrabold text-[#061B4E]">
+							Datos del denunciante
+						</span>
+					</legend>
+
+					<div class="grid gap-5 md:grid-cols-2">
+						<div>
+							<label
+								for="tipo-denunciante"
+								class="mb-2 block text-sm font-semibold text-slate-700"
+							>
+								Tipo de denunciante
+								<span class="text-red-600">*</span>
+							</label>
+
+							<select
+								id="tipo-denunciante"
+								name="tipoDenunciante"
+								required
+								data-personal-required
+								class="h-12 w-full rounded-xl border border-slate-300 bg-white px-4 text-sm text-slate-700 outline-none transition focus:border-[#0A3D91] focus:ring-4 focus:ring-blue-100"
+							>
+<option value="">SELECCIONE UNA OPCIÓN</option>
+</select>
+						</div>
+
+						<div>
+							<label
+								for="identificacion"
+								class="mb-2 block text-sm font-semibold text-slate-700"
+							>
+								Cédula o RUC
+								<span class="text-red-600">*</span>
+							</label>
+
+							<input
+								id="identificacion" pattern="([0-9]{10}|[0-9]{13})" title="INGRESE 10 DÍGITOS PARA CÉDULA O 13 PARA RUC."
+								name="identificacion"
+								type="text"
+								required
+								data-personal-required
+								maxlength="13"
+								inputmode="numeric"
+								placeholder="Ingrese la cédula o RUC"
+								class="h-12 w-full rounded-xl border border-slate-300 px-4 text-sm outline-none transition placeholder:text-slate-400 focus:border-[#0A3D91] focus:ring-4 focus:ring-blue-100"
+							/>
+						</div>
+
+						<div>
+							<label
+								for="nombres"
+								class="mb-2 block text-sm font-semibold text-slate-700"
+							>
+								Nombres o razón social
+								<span class="text-red-600">*</span>
+							</label>
+
+							<input
+								id="nombres" maxlength="200" data-mayusculas
+								name="nombres"
+								type="text"
+								required
+								data-personal-required
+								placeholder="Ingrese nombres completos o razón social"
+								class="uppercase h-12 w-full rounded-xl border border-slate-300 px-4 text-sm outline-none transition placeholder:text-slate-400 focus:border-[#0A3D91] focus:ring-4 focus:ring-blue-100"
+							/>
+						</div>
+
+						<div>
+							<label
+								for="telefono"
+								class="mb-2 block text-sm font-semibold text-slate-700"
+							>
+								Teléfono
+								<span class="text-red-600">*</span>
+							</label>
+
+							<input
+								id="telefono" pattern="[0-9]{10}" title="INGRESE UN TELÉFONO DE 10 DÍGITOS."
+								name="telefono"
+								type="tel"
+								required
+								data-personal-required
+								maxlength="10"
+								inputmode="numeric"
+								placeholder="Ejemplo: 0999999999"
+								class="h-12 w-full rounded-xl border border-slate-300 px-4 text-sm outline-none transition placeholder:text-slate-400 focus:border-[#0A3D91] focus:ring-4 focus:ring-blue-100"
+							/>
+						</div>
+
+						<div class="md:col-span-2">
+							<label
+								for="email"
+								class="mb-2 block text-sm font-semibold text-slate-700"
+							>
+								Correo electrónico
+							</label>
+
+							<input
+								id="email" maxlength="150"
+								name="email"
+								type="email"
+								placeholder="correo@ejemplo.com"
+								class="h-12 w-full rounded-xl border border-slate-300 px-4 text-sm outline-none transition placeholder:text-slate-400 focus:border-[#0A3D91] focus:ring-4 focus:ring-blue-100"
+							/>
+						</div>
+					</div>
+				</fieldset>
+
+				<!-- ================================================= -->
+				<!-- INFORMACIÓN DE LA DENUNCIA -->
+				<!-- ================================================= -->
+
+				<fieldset class="mt-9">
+					<legend
+						class="mb-5 flex w-full items-center gap-3 border-b border-slate-200 pb-3"
+					>
+						<span
+							class="flex h-9 w-9 items-center justify-center rounded-xl bg-[#EAF4FF] text-[#0A3D91]"
+						>
+							<svg
+								xmlns="http://www.w3.org/2000/svg"
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								stroke-width="2"
+								class="h-5 w-5"
+								aria-hidden="true"
+							>
+								<path
+									d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"
+								></path>
+								<path d="M14 2v6h6"></path>
+								<path d="M8 13h8"></path>
+								<path d="M8 17h5"></path>
+							</svg>
+						</span>
+
+						<span class="text-lg font-extrabold text-[#061B4E]">
+							Información de la denuncia
+						</span>
+					</legend>
+
+					<div class="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+						<div>
+							<label
+								for="fecha-denuncia"
+								class="mb-2 block text-sm font-semibold text-slate-700"
+							>
+								Fecha de denuncia
+								<span class="text-red-600">*</span>
+							</label>
+
+							<input
+								id="fecha-denuncia"
+								name="fechaDenuncia"
+								type="date"
+								required
+								readonly
+								class="h-12 w-full rounded-xl border border-slate-300 bg-slate-50 px-4 text-sm text-slate-700 outline-none"
+							/>
+						</div>
+
+						<div>
+							<label
+								for="canton"
+								class="mb-2 block text-sm font-semibold text-slate-700"
+							>
+								Cantón
+								<span class="text-red-600">*</span>
+							</label>
+
+							<select
+								id="canton"
+								name="canton"
+								required
+								class="h-12 w-full rounded-xl border border-slate-300 bg-white px-4 text-sm text-slate-700 outline-none transition focus:border-[#0A3D91] focus:ring-4 focus:ring-blue-100"
+							>
+<option value="">SELECCIONE EL CANTÓN</option>
+</select>
+						</div>
+
+						<div>
+							<label
+								for="parroquia"
+								class="mb-2 block text-sm font-semibold text-slate-700"
+							>
+								Parroquia
+								<span class="text-red-600">*</span>
+							</label>
+
+							<input
+								id="parroquia" maxlength="150" data-mayusculas
+								name="parroquia"
+								type="text"
+								required
+								placeholder="Ingrese la parroquia"
+								class="uppercase h-12 w-full rounded-xl border border-slate-300 px-4 text-sm outline-none transition placeholder:text-slate-400 focus:border-[#0A3D91] focus:ring-4 focus:ring-blue-100"
+							/>
+						</div>
+
+						<div>
+							<label
+								for="sector"
+								class="mb-2 block text-sm font-semibold text-slate-700"
+							>
+								Sector
+								<span class="text-red-600">*</span>
+							</label>
+
+							<select
+								id="sector"
+								name="sector"
+								required
+								class="h-12 w-full rounded-xl border border-slate-300 bg-white px-4 text-sm text-slate-700 outline-none transition focus:border-[#0A3D91] focus:ring-4 focus:ring-blue-100"
+							>
+<option value="">SELECCIONE EL SECTOR</option>
+</select>
+						</div>
+
+						<div>
+							<label
+								for="barrio"
+								class="mb-2 block text-sm font-semibold text-slate-700"
+							>
+								Barrio, recinto o comunidad
+								<span class="text-red-600">*</span>
+							</label>
+
+							<input
+								id="barrio" maxlength="200" data-mayusculas
+								name="barrio"
+								type="text"
+								required
+								placeholder="Ingrese el nombre del lugar"
+								class="uppercase h-12 w-full rounded-xl border border-slate-300 px-4 text-sm outline-none transition placeholder:text-slate-400 focus:border-[#0A3D91] focus:ring-4 focus:ring-blue-100"
+							/>
+						</div>
+
+						<div>
+							<label
+								for="referencia"
+								class="mb-2 block text-sm font-semibold text-slate-700"
+							>
+								Referencia de ubicación
+							</label>
+
+							<input
+								id="referencia" maxlength="300" data-mayusculas
+								name="referencia"
+								type="text"
+								placeholder="Ejemplo: frente a la escuela..."
+								class="uppercase h-12 w-full rounded-xl border border-slate-300 px-4 text-sm outline-none transition placeholder:text-slate-400 focus:border-[#0A3D91] focus:ring-4 focus:ring-blue-100"
+							/>
+						</div>
+					</div>
+				</fieldset>
+
+				<!-- ================================================= -->
+				<!-- PROBLEMA REPORTADO -->
+				<!-- ================================================= -->
+
+				<fieldset class="mt-8">
+					<legend class="mb-4 text-sm font-bold text-[#061B4E]">
+						Problema reportado
+						<span class="text-red-600">*</span>
+					</legend>
+
+                    <div id="opciones-problemas" class="grid gap-3 rounded-2xl border border-blue-100 bg-[#F5FAFF] p-5 sm:grid-cols-2 lg:grid-cols-3"></div>
+
+					<p
+						id="error-problema"
+						class="mt-2 hidden text-sm font-semibold text-red-600"
+					>
+						Seleccione al menos un problema.
+					</p>
+				</fieldset>
+
+				<!-- ================================================= -->
+				<!-- MAPA -->
+				<!-- ================================================= -->
+
+				<div
+					class="mt-8 rounded-2xl border border-slate-200 bg-white p-5 sm:p-6"
+				>
+					<MapaSelector
+						nombreLatitud="latitud"
+						nombreLongitud="longitud"
+						requerido={true}
+						altura="normal"
+					/>
+				</div>
+
+				<!-- ================================================= -->
+				<!-- EVIDENCIAS -->
+				<!-- ================================================= -->
+
+				<div class="mt-8">
+					<p class="mb-2 block text-sm font-semibold text-slate-700">
+						Fotografías o videos
+					</p>
+
+					<button
+						id="btn-seleccionar-evidencias"
+						type="button"
+						class="flex w-full cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50 px-6 py-7 text-center transition hover:border-[#0A3D91] hover:bg-blue-50 focus:outline-none focus:ring-4 focus:ring-blue-100 disabled:cursor-not-allowed disabled:opacity-60"
+					>
+						<span
+							class="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-[#EAF4FF] text-[#0A3D91]"
+						>
+							<svg
+								xmlns="http://www.w3.org/2000/svg"
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								stroke-width="2"
+								class="h-6 w-6"
+								aria-hidden="true"
+							>
+								<path
+									d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"
+								></path>
+								<polyline points="17 8 12 3 7 8"></polyline>
+								<line x1="12" y1="3" x2="12" y2="15"></line>
+							</svg>
+						</span>
+
+						<span class="font-bold text-[#061B4E]">
+							Seleccione fotografías o videos
+						</span>
+
+						<span class="mt-1 text-xs text-slate-500">
+							Archivos JPG, PNG o MP4. Máximo 30 MB por archivo.
+						</span>
+					</button>
+
+					<input
+						id="evidencias"
+						name="evidencias"
+						type="file"
+						multiple
+						accept="image/jpeg,image/png,video/mp4"
+						class="hidden"
+					/>
+
+					<div
+						id="lista-archivos"
+						class="mt-3 hidden rounded-xl border border-slate-200 bg-white p-4"
+					>
+						<p class="text-sm font-bold text-[#061B4E]">
+							Archivos seleccionados
+						</p>
+
+						<ul
+							id="archivos-seleccionados"
+							class="mt-2 space-y-1.5 text-sm text-slate-600"
+						>
+						</ul>
+					</div>
+
+					<p id="sin-archivos" class="mt-2 text-sm text-slate-500">
+						Ningún archivo seleccionado.
+					</p>
+				</div>
+
+				<!-- ================================================= -->
+				<!-- DESCRIPCIÓN -->
+				<!-- ================================================= -->
+
+				<div class="mt-8">
+					<label
+						for="descripcion"
+						class="mb-2 block text-sm font-semibold text-slate-700"
+					>
+						Descripción de la denuncia
+						<span class="text-red-600">*</span>
+					</label>
+
+					<textarea
+						id="descripcion" data-mayusculas
+						name="descripcion"
+						required
+						minlength="20"
+						maxlength="1000"
+						rows="5"
+						placeholder="Describa las condiciones actuales de la cuneta, desde cuándo existe el problema y cualquier riesgo o afectación observada..."
+						class="uppercase w-full resize-y rounded-xl border border-slate-300 px-4 py-3 text-sm leading-6 outline-none transition placeholder:text-slate-400 focus:border-[#0A3D91] focus:ring-4 focus:ring-blue-100"
+					></textarea>
+
+					<div class="mt-2 flex items-center justify-between gap-4">
+						<p class="text-xs text-slate-500">
+							Ingrese al menos 20 caracteres.
+						</p>
+
+						<p
+							id="contador-descripcion"
+							class="text-xs font-semibold text-slate-500"
+						>
+							0 / 1000
+						</p>
+					</div>
+				</div>
+
+				<!-- ================================================= -->
+				<!-- DECLARACIÓN -->
+				<!-- ================================================= -->
+
+				<label
+					class="mt-6 flex cursor-pointer items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4"
+				>
+					<input
+						id="declaracion" name="declaracion" value="true"
+						type="checkbox"
+						required
+						class="mt-0.5 h-5 w-5 shrink-0 rounded border-slate-300 accent-[#0A3D91]"
+					/>
+
+					<span class="text-sm leading-6 text-slate-600">
+						Declaro que la información proporcionada es correcta y
+						que la denuncia corresponde a hechos reales. Conozco que
+						el registro de información falsa o evidencias
+						manipuladas puede generar responsabilidades conforme a
+						la normativa aplicable.
+					</span>
+				</label>
+
+				<!-- ================================================= -->
+				<!-- ACCIONES -->
+				<!-- ================================================= -->
+
+				<div
+					class="mt-8 flex flex-col-reverse gap-3 border-t border-slate-200 pt-6 sm:flex-row sm:justify-end"
+				>
+					<button
+						id="btn-limpiar"
+						type="button"
+						class="inline-flex h-12 items-center justify-center rounded-xl border border-slate-300 px-6 font-bold text-slate-600 transition hover:bg-slate-100 focus:outline-none focus:ring-4 focus:ring-slate-200 disabled:cursor-not-allowed disabled:opacity-60"
+					>
+						Limpiar formulario
+					</button>
+
+					<button
+						id="btn-enviar" disabled
+						type="submit"
+						class="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-[#061B4E] px-8 font-bold text-white shadow-lg shadow-blue-950/20 transition hover:bg-[#0A3D91] focus:outline-none focus:ring-4 focus:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-60"
+					>
+						<svg
+							id="icono-enviar"
+							xmlns="http://www.w3.org/2000/svg"
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="2"
+							class="h-5 w-5"
+							aria-hidden="true"
+						>
+							<line x1="22" y1="2" x2="11" y2="13"></line>
+							<polygon points="22 2 15 22 11 13 2 9 22 2">
+							</polygon>
+						</svg>
+
+						<svg
+							id="icono-cargando"
+							class="hidden h-5 w-5 animate-spin"
+							xmlns="http://www.w3.org/2000/svg"
+							fill="none"
+							viewBox="0 0 24 24"
+							aria-hidden="true"
+						>
+							<circle
+								class="opacity-25"
+								cx="12"
+								cy="12"
+								r="10"
+								stroke="currentColor"
+								stroke-width="4"
+							>
+							</circle>
+
+							<path
+								class="opacity-75"
+								fill="currentColor"
+								d="M4 12a8 8 0 0 1 8-8v4a4 4 0 0 0-4 4H4Z"
+							>
+							</path>
+						</svg>
+
+						<span id="texto-btn-enviar">
+							Enviar denuncia
+						</span>
+					</button>
+				</div>
+			</fieldset>
+            </form>
+		</div>
+	</div>
+</section>
+
+<script>
+ type OpcionCatalogo = {
+  id: number;
+  codigo: string;
+  nombre: string;
+  descripcion?: string | null;
+  requiere_datos_personales?: boolean;
+ };
+ const CATALOGOS = ["tipo-denuncia", "tipo-denunciante", "canton", "sector", "problema-reportado"] as const;
+ type CodigoCatalogo = (typeof CATALOGOS)[number];
+ type Catalogos = Record<CodigoCatalogo, OpcionCatalogo[]>;
+ type ModalError = { titulo: string; mensaje: string; detalle?: string };
+ const MAX_FILE_SIZE = 30 * 1024 * 1024;
+ const MAX_TOTAL_SIZE = 120 * 1024 * 1024;
+ const TIPOS_PERMITIDOS = new Set(["image/jpeg", "image/png", "video/mp4"]);
+ const objeto = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null && !Array.isArray(value);
+ const texto = (value: unknown) => typeof value === "string" ? value : "";
+ const mayusculas = (value: string) => value.toLocaleUpperCase("es-EC");
+ const longitud = (value: string) => Array.from(value).length;
+
+ function validarCatalogos(data: unknown): Catalogos {
+  if (!objeto(data) || !objeto(data.catalogos)) throw new Error("EL SERVIDOR DEVOLVIÓ UN FORMATO DE CATÁLOGOS NO VÁLIDO.");
+  const result: Partial<Catalogos> = {};
+  for (const key of CATALOGOS) {
+   const options = data.catalogos[key];
+   if (!Array.isArray(options) || !options.length) throw new Error(`NO HAY OPCIONES DISPONIBLES EN EL CATÁLOGO ${key}.`);
+   const codes = new Set<string>();
+   result[key] = options.map((option: unknown) => {
+    if (!objeto(option) || !Number.isSafeInteger(option.id) || Number(option.id) <= 0 ||
+     typeof option.codigo !== "string" || !/^[A-Z][A-Z0-9_]*$/.test(option.codigo) ||
+     typeof option.nombre !== "string" || !option.nombre.trim() ||
+     (option.descripcion != null && typeof option.descripcion !== "string")) {
+     throw new Error(`EL CATÁLOGO ${key} CONTIENE OPCIONES NO VÁLIDAS.`);
+    }
+    if (codes.has(option.codigo)) throw new Error(`EL CATÁLOGO ${key} CONTIENE CÓDIGOS DUPLICADOS.`);
+    codes.add(option.codigo);
+    if (key === "tipo-denuncia" && (
+     !["ANONIMA", "IDENTIFICADA"].includes(option.codigo) ||
+     option.requiere_datos_personales !== (option.codigo === "IDENTIFICADA")
+    )) throw new Error("LA CONFIGURACIÓN DE LOS TIPOS DE DENUNCIA NO ES VÁLIDA.");
+    return option as OpcionCatalogo;
+   });
+  }
+  if (!result["tipo-denuncia"]?.some(option => option.codigo === "ANONIMA")) {
+   throw new Error("LA DENUNCIA ANÓNIMA NO ESTÁ DISPONIBLE. CONSULTE CON LA INSTITUCIÓN.");
+  }
+  return result as Catalogos;
+ }
+
+ function inicializarFormulario() {
+  const form = document.querySelector<HTMLFormElement>("#form-denuncia");
+  if (!form || form.dataset.initialized === "true") return;
+  form.dataset.initialized = "true";
+  const campo = <T extends Element>(selector: string) => {
+   const element = form.querySelector<T>(selector);
+   if (!element) throw new Error(`Falta el elemento ${selector} del formulario.`);
+   return element;
+  };
+  const campos = campo<HTMLFieldSetElement>("#campos-formulario");
+  const personales = campo<HTMLFieldSetElement>("#seccion-denunciante");
+  const tipos = campo<HTMLDivElement>("#opciones-tipo-denuncia");
+  const problemas = campo<HTMLDivElement>("#opciones-problemas");
+  const estadoCatalogos = campo<HTMLDivElement>("#estado-catalogos");
+  const mensajeCatalogos = campo<HTMLParagraphElement>("#mensaje-catalogos");
+  const reintentar = campo<HTMLButtonElement>("#btn-reintentar-catalogos");
+  const estadoRegistro = campo<HTMLParagraphElement>("#estado-registro");
+  const fecha = campo<HTMLInputElement>("#fecha-denuncia");
+  const descripcion = campo<HTMLTextAreaElement>("#descripcion");
+  const contador = campo<HTMLElement>("#contador-descripcion");
+  const errorProblema = campo<HTMLElement>("#error-problema");
+  const evidencias = campo<HTMLInputElement>("#evidencias");
+  const botonArchivos = campo<HTMLButtonElement>("#btn-seleccionar-evidencias");
+  const listaArchivos = campo<HTMLElement>("#lista-archivos");
+  const lista = campo<HTMLUListElement>("#archivos-seleccionados");
+  const sinArchivos = campo<HTMLElement>("#sin-archivos");
+  const enviar = campo<HTMLButtonElement>("#btn-enviar");
+  const limpiar = campo<HTMLButtonElement>("#btn-limpiar");
+  const textoEnviar = campo<HTMLElement>("#texto-btn-enviar");
+  const iconoEnviar = campo<SVGElement>("#icono-enviar");
+  const iconoCargando = campo<SVGElement>("#icono-cargando");
+  const textosMayusculas = Array.from(form.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>("[data-mayusculas]"));
+  let catalogos: Catalogos | null = null;
+  let cargando = false;
+  let enviando = false;
+  let confirmacionPendiente = false;
+
+  const mostrarError = (detail: ModalError) => window.dispatchEvent(new CustomEvent("app:modal-error", { detail }));
+  const mostrarExito = (numero: string, mensaje: string) => window.dispatchEvent(new CustomEvent("app:modal-respuesta-denuncia", {
+   detail: { numero, titulo: "Denuncia recibida", mensaje },
+  }));
+  const mostrarEstado = (mensaje: string) => {
+   estadoRegistro.textContent = mensaje;
+   estadoRegistro.classList.toggle("hidden", !mensaje);
+  };
+  const establecerFecha = () => {
+   const parts = new Intl.DateTimeFormat("en-US", { timeZone: "America/Guayaquil", year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(new Date());
+   const part = (name: string) => parts.find(p => p.type === name)?.value ?? "";
+   fecha.value = `${part("year")}-${part("month")}-${part("day")}`;
+   fecha.max = fecha.value;
+  };
+  const actualizarContador = () => {
+   contador.textContent = `${longitud(descripcion.value)} / 1000`;
+  };
+  const normalizarCampo = (input: HTMLInputElement | HTMLTextAreaElement, trim = false) => {
+   const original = input.value;
+   const nuevo = mayusculas(trim ? original.trim() : original);
+   if (original === nuevo) return;
+   const inicio = input.selectionStart;
+   const fin = input.selectionEnd;
+   const direccion = input.selectionDirection;
+   input.value = nuevo;
+   if (!trim && inicio !== null && fin !== null) input.setSelectionRange(
+    mayusculas(original.slice(0, inicio)).length,
+    mayusculas(original.slice(0, fin)).length,
+    direccion ?? undefined,
+   );
+  };
+  const actualizarTipo = () => {
+   const seleccionado = tipos.querySelector<HTMLInputElement>('input[name="tipoDenuncia"]:checked');
+   const opcion = catalogos?.["tipo-denuncia"].find(o => o.codigo === seleccionado?.value);
+   const requiere = opcion?.requiere_datos_personales === true;
+   personales.classList.toggle("hidden", !requiere);
+   personales.disabled = !requiere;
+   personales.querySelectorAll<HTMLInputElement | HTMLSelectElement>("input, select").forEach(input => {
+    input.required = requiere && input.hasAttribute("data-personal-required");
+    input.setCustomValidity("");
+    if (!requiere) input.value = "";
+   });
+   tipos.querySelectorAll<HTMLElement>("[data-tipo-card]").forEach(card => {
+    const activa = card.dataset.tipoCard === seleccionado?.value;
+    card.classList.toggle("border-[#0A3D91]", activa);
+    card.classList.toggle("bg-[#F5FAFF]", activa);
+    card.classList.toggle("border-slate-200", !activa);
+    card.classList.toggle("bg-white", !activa);
+   });
+  };
+  const refrescarEstado = () => {
+   campos.disabled = !catalogos || enviando;
+   enviar.disabled = !catalogos || enviando || confirmacionPendiente;
+   limpiar.disabled = !catalogos || enviando;
+   botonArchivos.disabled = !catalogos || enviando;
+   form.setAttribute("aria-busy", String(cargando || enviando));
+   textoEnviar.textContent = enviando ? "Enviando..." : "Enviar denuncia";
+   iconoEnviar.classList.toggle("hidden", enviando);
+   iconoCargando.classList.toggle("hidden", !enviando);
+  };
+  const llenarSelect = (selector: string, opciones: OpcionCatalogo[], placeholder: string) => {
+   const select = campo<HTMLSelectElement>(selector);
+   const inicial = new Option(placeholder, "", true, true);
+   select.replaceChildren(inicial);
+   opciones.forEach(o => select.add(new Option(mayusculas(o.nombre), o.codigo)));
+  };
+  const renderizarCatalogos = (data: Catalogos) => {
+   tipos.replaceChildren();
+   data["tipo-denuncia"].forEach(opcion => {
+    const card = document.createElement("label");
+    card.dataset.tipoCard = opcion.codigo;
+    card.className = "relative flex cursor-pointer items-start gap-4 rounded-2xl border-2 border-slate-200 bg-white p-5 transition hover:border-slate-300";
+    const input = document.createElement("input");
+    input.id = `tipo-${opcion.codigo.toLowerCase()}`;
+    input.type = "radio"; input.name = "tipoDenuncia"; input.value = opcion.codigo; input.required = true;
+    input.defaultChecked = opcion.codigo === "ANONIMA";
+    input.checked = input.defaultChecked;
+    input.className = "mt-1 h-5 w-5 shrink-0 accent-[#0A3D91]";
+    const contenido = document.createElement("span");
+    const titulo = document.createElement("span");
+    titulo.className = "block font-extrabold text-[#061B4E]";
+    titulo.textContent = mayusculas(opcion.nombre);
+    contenido.append(titulo);
+    if (opcion.descripcion) {
+     const detalle = document.createElement("span");
+     detalle.className = "mt-2 block text-sm leading-6 text-slate-600";
+     detalle.textContent = mayusculas(opcion.descripcion);
+     contenido.append(detalle);
+    }
+    card.append(input, contenido); tipos.append(card);
+   });
+   llenarSelect("#tipo-denunciante", data["tipo-denunciante"], "SELECCIONE UNA OPCIÓN");
+   llenarSelect("#canton", data.canton, "SELECCIONE EL CANTÓN");
+   llenarSelect("#sector", data.sector, "SELECCIONE EL SECTOR");
+   problemas.replaceChildren();
+   data["problema-reportado"].forEach(opcion => {
+    const label = document.createElement("label");
+    label.className = "flex cursor-pointer items-center gap-3 rounded-xl border border-blue-100 bg-white p-4 transition hover:border-[#0A3D91]";
+    const input = document.createElement("input");
+    input.type = "checkbox"; input.name = "problemaReportado"; input.value = opcion.codigo; input.dataset.problema = "";
+    input.className = "h-5 w-5 rounded border-slate-300 accent-[#0A3D91]";
+    const nombre = document.createElement("span");
+    nombre.className = "text-sm font-semibold text-slate-700";
+    nombre.textContent = mayusculas(opcion.nombre);
+    label.append(input, nombre); problemas.append(label);
+   });
+  };
+  const cargarCatalogos = async () => {
+   if (cargando || enviando) return;
+   cargando = true;
+   estadoCatalogos.classList.remove("hidden");
+   estadoCatalogos.setAttribute("role", "status");
+   mensajeCatalogos.textContent = "CARGANDO OPCIONES DEL FORMULARIO...";
+   reintentar.classList.add("hidden"); reintentar.disabled = true;
+   refrescarEstado();
+   const controller = new AbortController();
+   const timeout = window.setTimeout(() => controller.abort(), 15000);
+   try {
+    const endpoint = form.dataset.catalogosEndpoint;
+    if (!endpoint) throw new Error("NO SE ENCUENTRA CONFIGURADA PUBLIC_API_URL.");
+    const response = await fetch(endpoint, { headers: { Accept: "application/json" }, cache: "no-store", signal: controller.signal });
+    if (!response.ok) throw new Error("NO FUE POSIBLE CONSULTAR LOS CATÁLOGOS. COMPRUEBE QUE EL BACKEND ESTÉ DISPONIBLE.");
+    const data: unknown = await response.json();
+    const validos = validarCatalogos(data);
+    renderizarCatalogos(validos);
+    catalogos = validos;
+    actualizarTipo();
+    estadoCatalogos.classList.add("hidden");
+   } catch (error) {
+    catalogos = null;
+    console.error("[FORMULARIO] Error de catálogos:", error);
+    estadoCatalogos.setAttribute("role", "alert");
+    mensajeCatalogos.textContent = error instanceof Error && error.name !== "AbortError" ? error.message : "NO FUE POSIBLE CARGAR LAS OPCIONES. REVISE SU CONEXIÓN E INTENTE NUEVAMENTE.";
+    reintentar.classList.remove("hidden");
+   } finally {
+    window.clearTimeout(timeout);
+    cargando = false; reintentar.disabled = false;
+    refrescarEstado();
+   }
+  };
+  const validarArchivos = (): string | null => {
+   let total = 0;
+   for (const file of Array.from(evidencias.files ?? [])) {
+    if (!TIPOS_PERMITIDOS.has(file.type)) return `EL ARCHIVO "${file.name}" NO TIENE UN FORMATO PERMITIDO. UTILICE JPG, PNG O MP4.`;
+    if (file.size <= 0) return `EL ARCHIVO "${file.name}" ESTÁ VACÍO.`;
+    if (file.size > MAX_FILE_SIZE) return `EL ARCHIVO "${file.name}" SUPERA EL MÁXIMO DE 30 MB.`;
+    if (longitud(file.name) > 255) return "EL NOMBRE DE CADA ARCHIVO DEBE TENER COMO MÁXIMO 255 CARACTERES.";
+    total += file.size;
+   }
+   return total > MAX_TOTAL_SIZE ? "LAS EVIDENCIAS NO PUEDEN SUPERAR LOS 120 MB EN TOTAL." : null;
+  };
+  const actualizarArchivos = () => {
+   const files = Array.from(evidencias.files ?? []);
+   lista.replaceChildren();
+   files.forEach(file => {
+    const item = document.createElement("li"); item.className = "flex items-center justify-between gap-3";
+    const nombre = document.createElement("span"); nombre.className = "min-w-0 truncate"; nombre.textContent = file.name;
+    const size = document.createElement("span"); size.className = "shrink-0 text-xs font-semibold text-slate-500";
+    size.textContent = `${(file.size / (1024 * 1024)).toFixed(2)} MB`;
+    item.append(nombre, size); lista.append(item);
+   });
+   listaArchivos.classList.toggle("hidden", !files.length);
+   sinArchivos.classList.toggle("hidden", !!files.length);
+  };
+  const validarProblemas = () => {
+   const valido = !!problemas.querySelector('input[data-problema]:checked');
+   errorProblema.classList.toggle("hidden", valido);
+   return valido;
+  };
+  const validarCampos = () => {
+   textosMayusculas.forEach(input => {
+    normalizarCampo(input, true);
+    input.setCustomValidity("");
+    if (input.closest("#seccion-denunciante") && personales.disabled) return;
+    const maximo = Number(input.getAttribute("maxlength") ?? 0);
+    const minimo = input === descripcion ? 20 : (input.required ? 1 : 0);
+    const n = longitud(input.value);
+    if (n < minimo || (maximo > 0 && n > maximo)) input.setCustomValidity(`INGRESE ENTRE ${minimo} Y ${maximo || 1000} CARACTERES.`);
+   });
+   const correo = campo<HTMLInputElement>("#email"); correo.value = correo.value.trim();
+   for (const name of ["identificacion", "telefono"]) {
+    const input = campo<HTMLInputElement>(`#${name}`); input.value = input.value.trim();
+   }
+   // Los campos del mapa pueden ser hidden y no participar en checkValidity.
+   const lat = form.querySelector<HTMLInputElement>('[name="latitud"]')?.value.trim() ?? "";
+   const lon = form.querySelector<HTMLInputElement>('[name="longitud"]')?.value.trim() ?? "";
+   const mapaValido = lat !== "" && lon !== "" && Number.isFinite(Number(lat)) && Number.isFinite(Number(lon)) && Number(lat) >= -90 && Number(lat) <= 90 && Number(lon) >= -180 && Number(lon) <= 180;
+   actualizarContador();
+   return mapaValido;
+  };
+  const limpiarFormulario = () => {
+   form.reset();
+   // Reafirma el valor anónimo incluso si un navegador restauró otro estado.
+   const anonima = tipos.querySelector<HTMLInputElement>('input[value="ANONIMA"]');
+   if (anonima) anonima.checked = true;
+   form.querySelectorAll<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>("input, select, textarea").forEach(input => input.setCustomValidity(""));
+   establecerFecha(); actualizarTipo(); actualizarArchivos(); actualizarContador();
+   errorProblema.classList.add("hidden");
+   confirmacionPendiente = false; mostrarEstado("");
+   form.querySelectorAll<HTMLElement>("[data-map-selector]").forEach(mapa => mapa.dispatchEvent(new CustomEvent("mapa-selector:reset")));
+   refrescarEstado();
+  };
+
+  textosMayusculas.forEach(input => {
+   input.addEventListener("input", event => {
+    input.setCustomValidity("");
+    if (!(event instanceof InputEvent && event.isComposing)) normalizarCampo(input);
+    actualizarContador();
+   });
+   input.addEventListener("compositionend", () => { normalizarCampo(input); actualizarContador(); });
+   input.addEventListener("blur", () => { normalizarCampo(input, true); actualizarContador(); });
+  });
+  tipos.addEventListener("change", actualizarTipo);
+  problemas.addEventListener("change", validarProblemas);
+  reintentar.addEventListener("click", () => void cargarCatalogos());
+  botonArchivos.addEventListener("click", () => { if (!enviando) evidencias.click(); });
+  evidencias.addEventListener("change", () => {
+   const error = validarArchivos();
+   if (error) { evidencias.value = ""; mostrarError({ titulo: "Evidencia no válida", mensaje: error }); }
+   actualizarArchivos();
+  });
+  limpiar.addEventListener("click", () => { if (!enviando) limpiarFormulario(); });
+  form.addEventListener("submit", async event => {
+   event.preventDefault();
+   if (enviando || !catalogos || confirmacionPendiente) return;
+   const mapaValido = validarCampos();
+   const problemasValidos = validarProblemas();
+   if (!form.checkValidity()) { form.reportValidity(); return; }
+   if (!problemasValidos) { errorProblema.scrollIntoView({ behavior: "smooth", block: "center" }); return; }
+   if (!mapaValido) { mostrarError({ titulo: "Ubicación requerida", mensaje: "SELECCIONE UNA UBICACIÓN VÁLIDA EN EL MAPA." }); return; }
+   const errorArchivos = validarArchivos();
+   if (errorArchivos) { mostrarError({ titulo: "Evidencia no válida", mensaje: errorArchivos }); return; }
+   const endpoint = form.dataset.endpoint;
+   if (!endpoint) { mostrarError({ titulo: "Servicio no configurado", mensaje: "NO SE ENCUENTRA CONFIGURADA PUBLIC_API_URL." }); return; }
+   // Capturar ANTES de deshabilitar los controles; los disabled no entran en FormData.
+   const body = new FormData(form);
+   body.set("declaracion", "true");
+   if (personales.disabled) ["tipoDenunciante", "identificacion", "nombres", "telefono", "email"].forEach(name => body.delete(name));
+   // Evita enviar un File vacío cuando no se eligieron evidencias.
+   if (!evidencias.files?.length) body.delete("evidencias");
+   enviando = true; mostrarEstado(""); refrescarEstado();
+   try {
+    const response = await fetch(endpoint, { method: "POST", headers: { Accept: "application/json" }, body });
+    let data: Record<string, unknown> | null = null;
+    try { const parsed: unknown = await response.json(); if (objeto(parsed)) data = parsed; } catch { /* Se trata debajo como respuesta no confirmada. */ }
+    if (!response.ok) {
+     const referencia = texto(data?.numero_referencia);
+     const mensaje = texto(data?.error) || "NO FUE POSIBLE REGISTRAR LA DENUNCIA.";
+     if (referencia) {
+      confirmacionPendiente = true;
+      const detalle = `REFERENCIA: ${referencia}. CONSULTE EL SEGUIMIENTO ANTES DE VOLVER A REGISTRAR. CONSERVE ESTE NÚMERO. PARA INICIAR OTRA DENUNCIA UTILICE LIMPIAR FORMULARIO.`;
+      mostrarEstado(detalle);
+      mostrarError({ titulo: "Registro por confirmar", mensaje, detalle });
+     } else {
+      mostrarError({ titulo: "No fue posible registrar la denuncia", mensaje,
+       detalle: response.status === 413 ? "REDUZCA EL TAMAÑO DE LAS EVIDENCIAS." : response.status >= 500 ? "EL SERVICIO PRESENTÓ UN INCONVENIENTE. SUS DATOS SE CONSERVARON." : "REVISE LA INFORMACIÓN INGRESADA." });
+     }
+     return;
+    }
+    const numero = texto(data?.numero_denuncia);
+    if (!numero) {
+     confirmacionPendiente = true;
+     mostrarEstado("EL SERVIDOR RESPONDIÓ, PERO NO ENTREGÓ EL NÚMERO DE SEGUIMIENTO. NO REENVÍE INMEDIATAMENTE; CONSULTE CON LA INSTITUCIÓN.");
+     mostrarError({ titulo: "Respuesta de registro incompleta", mensaje: "NO SE RECIBIÓ EL NÚMERO DE SEGUIMIENTO.", detalle: "LA DENUNCIA PUEDE HABER SIDO REGISTRADA. SUS DATOS SE CONSERVARON." });
+     return;
+    }
+    const mensaje = texto(data?.mensaje) || "SU DENUNCIA FUE REGISTRADA CORRECTAMENTE.";
+    limpiarFormulario();
+    mostrarExito(numero, mensaje);
+   } catch (error) {
+    console.error("[FORMULARIO] Error de comunicación:", error);
+    confirmacionPendiente = true;
+    mostrarEstado("SE PERDIÓ LA COMUNICACIÓN DURANTE EL ENVÍO. EL REGISTRO PODRÍA HABERSE COMPLETADO. VERIFIQUE CON LA INSTITUCIÓN ANTES DE REENVIAR; SUS DATOS SE CONSERVARON.");
+    mostrarError({ titulo: "No se pudo confirmar el envío", mensaje: "NO SE RECIBIÓ UNA RESPUESTA DEL SERVICIO.", detalle: "REVISE SU CONEXIÓN. EVITE DUPLICAR LA DENUNCIA; CONSULTE ANTES DE VOLVER A ENVIAR." });
+   } finally {
+    enviando = false; refrescarEstado();
+   }
+  });
+  establecerFecha(); actualizarTipo(); actualizarArchivos(); actualizarContador();
+  void cargarCatalogos();
+ }
+ inicializarFormulario();
+ document.addEventListener("astro:page-load", inicializarFormulario);
+</script>

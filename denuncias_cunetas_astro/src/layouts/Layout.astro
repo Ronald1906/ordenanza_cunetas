@@ -1,0 +1,72 @@
+---
+import "../styles/global.css";
+
+import Navbar from "../components/Navbar.astro";
+import Footer from "../components/Footer.astro";
+
+import Toast from "../components/Toast.astro";
+import ModalError from "../components/ModalError.astro";
+import ModalRespuestaDenuncia from "../components/ModalRespuestaDenuncia.astro";
+
+interface Props {
+	title?: string;
+	description?: string;
+	fixedContent?: boolean;
+}
+
+const assetsUrl = import.meta.env.PUBLIC_ASSETS_URL ?? "";
+const faviconUrl = `${assetsUrl}/icons/logo_prefectura.ico`;
+
+const {
+	title = "Sistema de Denuncias de Cunetas",
+	description =
+		"Sistema institucional para el registro y seguimiento de denuncias de cunetas del Gobierno Provincial Santo Domingo de los Tsáchilas.",
+	fixedContent = false,
+} = Astro.props;
+---
+
+<!doctype html>
+<html lang="es" class="h-full">
+	<head>
+		<meta charset="UTF-8" />
+
+		<meta
+			name="viewport"
+			content="width=device-width, initial-scale=1.0"
+		/>
+
+		<meta name="description" content={description} />
+
+		<meta name="theme-color" content="#061B4E" />
+
+		<link
+			rel="icon"
+			type="image/x-icon"
+			href={faviconUrl}
+		/>
+
+		<title>{title}</title>
+	</head>
+
+	<body
+		class="grid h-dvh min-h-0 grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden bg-slate-100 text-slate-900 antialiased"
+	>
+		<Navbar />
+
+		<main
+			class:list={[
+				"min-h-0",
+				fixedContent ? "overflow-hidden" : "overflow-y-auto",
+			]}
+		>
+			<slot />
+		</main>
+
+		<Footer />
+
+		<!-- Componentes globales de respuesta -->
+		<Toast />
+		<ModalError />
+		<ModalRespuestaDenuncia />
+	</body>
+</html>
