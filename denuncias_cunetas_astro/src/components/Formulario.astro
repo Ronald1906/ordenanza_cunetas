@@ -1,617 +1,627 @@
 ---
 import MapaSelector from "./MapaSelector.astro";
 
-const API_URL = (import.meta.env.PUBLIC_API_URL ?? "").trim().replace(/\/+$/, "");
+let API_URL = (import.meta.env.PUBLIC_API_URL ?? "").trim();
+while (API_URL.endsWith("/")) API_URL = API_URL.slice(0, -1);
 const REGISTRAR_DENUNCIA_URL = API_URL ? `${API_URL}/public/denuncias` : "";
 const CATALOGOS_DENUNCIA_URL = API_URL ? `${API_URL}/public/denuncias/catalogos` : "";
 ---
 
-<section class="min-h-full bg-slate-100 px-4 py-10 sm:px-6 lg:px-8">
-	<div class="mx-auto w-full max-w-7xl">
-		<div
-			class="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-xl shadow-slate-900/5"
-		>
-			<div
-				class="border-b border-slate-200 px-5 pb-6 pt-7 sm:px-8 sm:pb-7 sm:pt-8"
-			>
-				<p
-					class="text-xs font-bold uppercase tracking-[0.2em] text-[#0A3D91]"
-				>
-					Formulario ciudadano
-				</p>
+<section data-denuncia-contenedor class="min-h-full bg-slate-100 px-4 py-10 sm:px-6 lg:px-8">
+    <div class="mx-auto w-full max-w-7xl">
+        <div
+            class="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-xl shadow-slate-900/5"
+        >
+            <div
+                id="encabezado-formulario"
+                class="hidden border-b border-slate-200 px-5 pb-6 pt-7 sm:px-8 sm:pb-7 sm:pt-8"
+            >
+                <p
+                    class="text-xs font-bold uppercase tracking-[0.2em] text-[#0A3D91]"
+                >
+                    Formulario ciudadano
+                </p>
 
-				<h1
-					class="mt-2 text-3xl font-black leading-tight text-[#061B4E] sm:text-4xl"
-				>
-					Denuncia para limpieza de cunetas
-				</h1>
+                <h1
+                    class="mt-2 text-3xl font-black leading-tight text-[#061B4E] sm:text-4xl"
+                >
+                    Denuncia para limpieza de cunetas
+                </h1>
 
-				<p
-					class="mt-3 max-w-3xl text-sm leading-6 text-slate-600 sm:text-base"
-				>
-					Complete la información solicitada para registrar el
-					problema. Los campos marcados con asterisco son
-					obligatorios.
-				</p>
-			</div>
+                <p
+                    class="mt-3 max-w-3xl text-sm leading-6 text-slate-600 sm:text-base"
+                >
+                    Complete la información solicitada para registrar el
+                    problema. Los campos marcados con asterisco son
+                    obligatorios.
+                </p>
+            </div>
 
-			<form
-				id="form-denuncia"
-				class="p-5 sm:p-8"
-				data-endpoint={REGISTRAR_DENUNCIA_URL}
-                data-catalogos-endpoint={CATALOGOS_DENUNCIA_URL}
-				novalidate
-			>
-                <div id="estado-catalogos" role="status" aria-live="polite" class="mb-6 rounded-xl border border-blue-100 bg-blue-50 p-4 text-sm font-semibold text-[#061B4E]">
-                    <p id="mensaje-catalogos">CARGANDO OPCIONES DEL FORMULARIO...</p>
-                    <button id="btn-reintentar-catalogos" type="button" class="mt-3 hidden rounded-lg border border-current px-4 py-2 font-bold">REINTENTAR</button>
+            <div id="estado-catalogos" role="status" aria-live="polite" aria-atomic="true" class="px-6 py-14 text-center sm:px-10 sm:py-20">
+                <div class="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-50 text-[#0A3D91]" aria-hidden="true">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" class="h-8 w-8">
+                        <path d="M12 8v4l3 2" />
+                        <circle cx="12" cy="12" r="9" />
+                    </svg>
                 </div>
-                <noscript><p class="mb-4 text-sm text-red-700">ACTIVE JAVASCRIPT PARA CARGAR Y ENVIAR EL FORMULARIO.</p></noscript>
+                <h2 id="titulo-catalogos" class="text-2xl font-extrabold text-[#061B4E] sm:text-3xl">Estamos preparando el formulario</h2>
+                <p id="mensaje-catalogos" class="mx-auto mt-4 max-w-xl text-sm leading-7 text-slate-600 sm:text-base">Por favor, espere un momento.</p>
+                <button id="btn-reintentar-catalogos" type="button" class="mt-7 hidden rounded-xl bg-[#061B4E] px-6 py-3 text-sm font-bold text-white transition hover:bg-[#0A3D91] focus:outline-none focus:ring-4 focus:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-60">Volver a intentar</button>
+                <noscript><p class="mx-auto mt-5 max-w-xl text-sm leading-6 text-slate-600">Para utilizar este servicio, active JavaScript en su navegador y vuelva a cargar la página.</p></noscript>
+            </div>
+
+            <form
+                id="form-denuncia"
+                class="hidden p-5 sm:p-8"
+                data-endpoint={REGISTRAR_DENUNCIA_URL}
+                data-catalogos-endpoint={CATALOGOS_DENUNCIA_URL}
+                novalidate
+            >
                 <p id="estado-registro" role="status" aria-live="polite" class="mb-5 hidden rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900"></p>
                 <fieldset id="campos-formulario" disabled class="min-w-0">
 
-				<!-- ================================================= -->
-				<!-- TIPO DE DENUNCIA -->
-				<!-- ================================================= -->
+                <!-- ================================================= -->
+                <!-- TIPO DE DENUNCIA -->
+                <!-- ================================================= -->
 
-				<fieldset>
-					<legend
-						class="mb-5 flex w-full items-center gap-3 border-b border-slate-200 pb-3"
-					>
-						<span
-							class="flex h-9 w-9 items-center justify-center rounded-xl bg-[#EAF4FF] text-[#0A3D91]"
-						>
-							<svg
-								xmlns="http://www.w3.org/2000/svg"
-								viewBox="0 0 24 24"
-								fill="none"
-								stroke="currentColor"
-								stroke-width="2"
-								class="h-5 w-5"
-								aria-hidden="true"
-							>
-								<path
-									d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"
-								></path>
-								<path d="M12 8v4"></path>
-								<path d="M12 16h.01"></path>
-							</svg>
-						</span>
+                <fieldset>
+                    <legend
+                        class="mb-5 flex w-full items-center gap-3 border-b border-slate-200 pb-3"
+                    >
+                        <span
+                            class="flex h-9 w-9 items-center justify-center rounded-xl bg-[#EAF4FF] text-[#0A3D91]"
+                        >
+                            <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                                class="h-5 w-5"
+                                aria-hidden="true"
+                            >
+                                <path
+                                    d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"
+                                ></path>
+                                <path d="M12 8v4"></path>
+                                <path d="M12 16h.01"></path>
+                            </svg>
+                        </span>
 
-						<span class="text-lg font-extrabold text-[#061B4E]">
-							Tipo de denuncia
-						</span>
-					</legend>
+                        <span class="text-lg font-extrabold text-[#061B4E]">
+                            Tipo de denuncia
+                        </span>
+                    </legend>
 
-					<p class="mb-5 max-w-3xl text-sm leading-6 text-slate-600">
-						Seleccione si desea proporcionar sus datos personales o
-						registrar la denuncia de manera anónima.
-					</p>
+                    <p class="mb-5 max-w-3xl text-sm leading-6 text-slate-600">
+                        Seleccione si desea proporcionar sus datos personales o
+                        registrar la denuncia de manera anónima.
+                    </p>
 
-					<div id="opciones-tipo-denuncia" class="grid gap-4 md:grid-cols-2"></div>
+                    <div id="opciones-tipo-denuncia" class="grid gap-4 md:grid-cols-2"></div>
                 </fieldset>
 
-				<!-- ================================================= -->
-				<!-- DATOS DEL DENUNCIANTE -->
-				<!-- ================================================= -->
+                <!-- ================================================= -->
+                <!-- DATOS DEL DENUNCIANTE -->
+                <!-- ================================================= -->
 
-				<fieldset id="seccion-denunciante" class="mt-9 hidden" disabled>
-					<legend
-						class="mb-5 flex w-full items-center gap-3 border-b border-slate-200 pb-3"
-					>
-						<span
-							class="flex h-9 w-9 items-center justify-center rounded-xl bg-[#EAF4FF] text-[#0A3D91]"
-						>
-							<svg
-								xmlns="http://www.w3.org/2000/svg"
-								viewBox="0 0 24 24"
-								fill="none"
-								stroke="currentColor"
-								stroke-width="2"
-								class="h-5 w-5"
-								aria-hidden="true"
-							>
-								<path d="M20 21a8 8 0 0 0-16 0"></path>
-								<circle cx="12" cy="7" r="4"></circle>
-							</svg>
-						</span>
+                <fieldset id="seccion-denunciante" class="mt-9 hidden" disabled>
+                    <legend
+                        class="mb-5 flex w-full items-center gap-3 border-b border-slate-200 pb-3"
+                    >
+                        <span
+                            class="flex h-9 w-9 items-center justify-center rounded-xl bg-[#EAF4FF] text-[#0A3D91]"
+                        >
+                            <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                                class="h-5 w-5"
+                                aria-hidden="true"
+                            >
+                                <path d="M20 21a8 8 0 0 0-16 0"></path>
+                                <circle cx="12" cy="7" r="4"></circle>
+                            </svg>
+                        </span>
 
-						<span class="text-lg font-extrabold text-[#061B4E]">
-							Datos del denunciante
-						</span>
-					</legend>
+                        <span class="text-lg font-extrabold text-[#061B4E]">
+                            Datos del denunciante
+                        </span>
+                    </legend>
 
-					<div class="grid gap-5 md:grid-cols-2">
-						<div>
-							<label
-								for="tipo-denunciante"
-								class="mb-2 block text-sm font-semibold text-slate-700"
-							>
-								Tipo de denunciante
-								<span class="text-red-600">*</span>
-							</label>
+                    <div class="grid gap-5 md:grid-cols-2">
+                        <div>
+                            <label
+                                for="tipo-denunciante"
+                                class="mb-2 block text-sm font-semibold text-slate-700"
+                            >
+                                Tipo de denunciante
+                                <span class="text-red-600">*</span>
+                            </label>
 
-							<select
-								id="tipo-denunciante"
-								name="tipoDenunciante"
-								required
-								data-personal-required
-								class="h-12 w-full rounded-xl border border-slate-300 bg-white px-4 text-sm text-slate-700 outline-none transition focus:border-[#0A3D91] focus:ring-4 focus:ring-blue-100"
-							>
+                            <select
+                                id="tipo-denunciante"
+                                name="tipoDenunciante"
+                                required
+                                data-personal-required
+                                class="h-12 w-full rounded-xl border border-slate-300 bg-white px-4 text-sm text-slate-700 outline-none transition focus:border-[#0A3D91] focus:ring-4 focus:ring-blue-100"
+                            >
 <option value="">SELECCIONE UNA OPCIÓN</option>
 </select>
-						</div>
+                        </div>
 
-						<div>
-							<label
-								for="identificacion"
-								class="mb-2 block text-sm font-semibold text-slate-700"
-							>
-								Cédula o RUC
-								<span class="text-red-600">*</span>
-							</label>
+                        <div>
+                            <label
+                                for="identificacion"
+                                class="mb-2 block text-sm font-semibold text-slate-700"
+                            >
+                                Cédula o RUC
+                                <span class="text-red-600">*</span>
+                            </label>
 
-							<input
-								id="identificacion" pattern="([0-9]{10}|[0-9]{13})" title="INGRESE 10 DÍGITOS PARA CÉDULA O 13 PARA RUC."
-								name="identificacion"
-								type="text"
-								required
-								data-personal-required
-								maxlength="13"
-								inputmode="numeric"
-								placeholder="Ingrese la cédula o RUC"
-								class="h-12 w-full rounded-xl border border-slate-300 px-4 text-sm outline-none transition placeholder:text-slate-400 focus:border-[#0A3D91] focus:ring-4 focus:ring-blue-100"
-							/>
-						</div>
+                            <input
+                                id="identificacion" pattern="([0-9]{10}|[0-9]{13})" title="INGRESE 10 DÍGITOS PARA CÉDULA O 13 PARA RUC."
+                                name="identificacion"
+                                type="text"
+                                required
+                                data-personal-required
+                                maxlength="13"
+                                inputmode="numeric"
+                                placeholder="Ingrese la cédula o RUC"
+                                class="h-12 w-full rounded-xl border border-slate-300 px-4 text-sm outline-none transition placeholder:text-slate-400 focus:border-[#0A3D91] focus:ring-4 focus:ring-blue-100"
+                            />
+                        </div>
 
-						<div>
-							<label
-								for="nombres"
-								class="mb-2 block text-sm font-semibold text-slate-700"
-							>
-								Nombres o razón social
-								<span class="text-red-600">*</span>
-							</label>
+                        <div>
+                            <label
+                                for="nombres"
+                                class="mb-2 block text-sm font-semibold text-slate-700"
+                            >
+                                Nombres o razón social
+                                <span class="text-red-600">*</span>
+                            </label>
 
-							<input
-								id="nombres" maxlength="200" data-mayusculas
-								name="nombres"
-								type="text"
-								required
-								data-personal-required
-								placeholder="Ingrese nombres completos o razón social"
-								class="uppercase h-12 w-full rounded-xl border border-slate-300 px-4 text-sm outline-none transition placeholder:text-slate-400 focus:border-[#0A3D91] focus:ring-4 focus:ring-blue-100"
-							/>
-						</div>
+                            <input
+                                id="nombres" maxlength="200" data-mayusculas
+                                name="nombres"
+                                type="text"
+                                required
+                                data-personal-required
+                                placeholder="Ingrese nombres completos o razón social"
+                                class="uppercase h-12 w-full rounded-xl border border-slate-300 px-4 text-sm outline-none transition placeholder:text-slate-400 focus:border-[#0A3D91] focus:ring-4 focus:ring-blue-100"
+                            />
+                        </div>
 
-						<div>
-							<label
-								for="telefono"
-								class="mb-2 block text-sm font-semibold text-slate-700"
-							>
-								Teléfono
-								<span class="text-red-600">*</span>
-							</label>
+                        <div>
+                            <label
+                                for="telefono"
+                                class="mb-2 block text-sm font-semibold text-slate-700"
+                            >
+                                Teléfono
+                                <span class="text-red-600">*</span>
+                            </label>
 
-							<input
-								id="telefono" pattern="[0-9]{10}" title="INGRESE UN TELÉFONO DE 10 DÍGITOS."
-								name="telefono"
-								type="tel"
-								required
-								data-personal-required
-								maxlength="10"
-								inputmode="numeric"
-								placeholder="Ejemplo: 0999999999"
-								class="h-12 w-full rounded-xl border border-slate-300 px-4 text-sm outline-none transition placeholder:text-slate-400 focus:border-[#0A3D91] focus:ring-4 focus:ring-blue-100"
-							/>
-						</div>
+                            <input
+                                id="telefono" pattern="[0-9]{10}" title="INGRESE UN TELÉFONO DE 10 DÍGITOS."
+                                name="telefono"
+                                type="tel"
+                                required
+                                data-personal-required
+                                maxlength="10"
+                                inputmode="numeric"
+                                placeholder="Ejemplo: 0999999999"
+                                class="h-12 w-full rounded-xl border border-slate-300 px-4 text-sm outline-none transition placeholder:text-slate-400 focus:border-[#0A3D91] focus:ring-4 focus:ring-blue-100"
+                            />
+                        </div>
 
-						<div class="md:col-span-2">
-							<label
-								for="email"
-								class="mb-2 block text-sm font-semibold text-slate-700"
-							>
-								Correo electrónico
-							</label>
+                        <div class="md:col-span-2">
+                            <label
+                                for="email"
+                                class="mb-2 block text-sm font-semibold text-slate-700"
+                            >
+                                Correo electrónico
+                            </label>
 
-							<input
-								id="email" maxlength="150"
-								name="email"
-								type="email"
-								placeholder="correo@ejemplo.com"
-								class="h-12 w-full rounded-xl border border-slate-300 px-4 text-sm outline-none transition placeholder:text-slate-400 focus:border-[#0A3D91] focus:ring-4 focus:ring-blue-100"
-							/>
-						</div>
-					</div>
-				</fieldset>
+                            <input
+                                id="email" maxlength="150"
+                                name="email"
+                                type="email"
+                                placeholder="correo@ejemplo.com"
+                                class="h-12 w-full rounded-xl border border-slate-300 px-4 text-sm outline-none transition placeholder:text-slate-400 focus:border-[#0A3D91] focus:ring-4 focus:ring-blue-100"
+                            />
+                        </div>
+                    </div>
+                </fieldset>
 
-				<!-- ================================================= -->
-				<!-- INFORMACIÓN DE LA DENUNCIA -->
-				<!-- ================================================= -->
+                <!-- ================================================= -->
+                <!-- INFORMACIÓN DE LA DENUNCIA -->
+                <!-- ================================================= -->
 
-				<fieldset class="mt-9">
-					<legend
-						class="mb-5 flex w-full items-center gap-3 border-b border-slate-200 pb-3"
-					>
-						<span
-							class="flex h-9 w-9 items-center justify-center rounded-xl bg-[#EAF4FF] text-[#0A3D91]"
-						>
-							<svg
-								xmlns="http://www.w3.org/2000/svg"
-								viewBox="0 0 24 24"
-								fill="none"
-								stroke="currentColor"
-								stroke-width="2"
-								class="h-5 w-5"
-								aria-hidden="true"
-							>
-								<path
-									d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"
-								></path>
-								<path d="M14 2v6h6"></path>
-								<path d="M8 13h8"></path>
-								<path d="M8 17h5"></path>
-							</svg>
-						</span>
+                <fieldset class="mt-9">
+                    <legend
+                        class="mb-5 flex w-full items-center gap-3 border-b border-slate-200 pb-3"
+                    >
+                        <span
+                            class="flex h-9 w-9 items-center justify-center rounded-xl bg-[#EAF4FF] text-[#0A3D91]"
+                        >
+                            <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                                class="h-5 w-5"
+                                aria-hidden="true"
+                            >
+                                <path
+                                    d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"
+                                ></path>
+                                <path d="M14 2v6h6"></path>
+                                <path d="M8 13h8"></path>
+                                <path d="M8 17h5"></path>
+                            </svg>
+                        </span>
 
-						<span class="text-lg font-extrabold text-[#061B4E]">
-							Información de la denuncia
-						</span>
-					</legend>
+                        <span class="text-lg font-extrabold text-[#061B4E]">
+                            Información de la denuncia
+                        </span>
+                    </legend>
 
-					<div class="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
-						<div>
-							<label
-								for="fecha-denuncia"
-								class="mb-2 block text-sm font-semibold text-slate-700"
-							>
-								Fecha de denuncia
-								<span class="text-red-600">*</span>
-							</label>
+                    <div class="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+                        <div>
+                            <label
+                                for="fecha-denuncia"
+                                class="mb-2 block text-sm font-semibold text-slate-700"
+                            >
+                                Fecha de denuncia
+                                <span class="text-red-600">*</span>
+                            </label>
 
-							<input
-								id="fecha-denuncia"
-								name="fechaDenuncia"
-								type="date"
-								required
-								readonly
-								class="h-12 w-full rounded-xl border border-slate-300 bg-slate-50 px-4 text-sm text-slate-700 outline-none"
-							/>
-						</div>
+                            <input
+                                id="fecha-denuncia"
+                                name="fechaDenuncia"
+                                type="date"
+                                required
+                                readonly
+                                class="h-12 w-full rounded-xl border border-slate-300 bg-slate-50 px-4 text-sm text-slate-700 outline-none"
+                            />
+                        </div>
 
-						<div>
-							<label
-								for="canton"
-								class="mb-2 block text-sm font-semibold text-slate-700"
-							>
-								Cantón
-								<span class="text-red-600">*</span>
-							</label>
+                        <div>
+                            <label
+                                for="canton"
+                                class="mb-2 block text-sm font-semibold text-slate-700"
+                            >
+                                Cantón
+                                <span class="text-red-600">*</span>
+                            </label>
 
-							<select
-								id="canton"
-								name="canton"
-								required
-								class="h-12 w-full rounded-xl border border-slate-300 bg-white px-4 text-sm text-slate-700 outline-none transition focus:border-[#0A3D91] focus:ring-4 focus:ring-blue-100"
-							>
+                            <select
+                                id="canton"
+                                name="canton"
+                                required
+                                class="h-12 w-full rounded-xl border border-slate-300 bg-white px-4 text-sm text-slate-700 outline-none transition focus:border-[#0A3D91] focus:ring-4 focus:ring-blue-100"
+                            >
 <option value="">SELECCIONE EL CANTÓN</option>
 </select>
-						</div>
+                        </div>
 
-						<div>
-							<label
-								for="parroquia"
-								class="mb-2 block text-sm font-semibold text-slate-700"
-							>
-								Parroquia
-								<span class="text-red-600">*</span>
-							</label>
+                        <div>
+                            <label
+                                for="parroquia"
+                                class="mb-2 block text-sm font-semibold text-slate-700"
+                            >
+                                Parroquia
+                                <span class="text-red-600">*</span>
+                            </label>
 
-							<input
-								id="parroquia" maxlength="150" data-mayusculas
-								name="parroquia"
-								type="text"
-								required
-								placeholder="Ingrese la parroquia"
-								class="uppercase h-12 w-full rounded-xl border border-slate-300 px-4 text-sm outline-none transition placeholder:text-slate-400 focus:border-[#0A3D91] focus:ring-4 focus:ring-blue-100"
-							/>
-						</div>
+                            <input
+                                id="parroquia" maxlength="150" data-mayusculas
+                                name="parroquia"
+                                type="text"
+                                required
+                                placeholder="Ingrese la parroquia"
+                                class="uppercase h-12 w-full rounded-xl border border-slate-300 px-4 text-sm outline-none transition placeholder:text-slate-400 focus:border-[#0A3D91] focus:ring-4 focus:ring-blue-100"
+                            />
+                        </div>
 
-						<div>
-							<label
-								for="sector"
-								class="mb-2 block text-sm font-semibold text-slate-700"
-							>
-								Sector
-								<span class="text-red-600">*</span>
-							</label>
+                        <div>
+                            <label
+                                for="sector"
+                                class="mb-2 block text-sm font-semibold text-slate-700"
+                            >
+                                Sector
+                                <span class="text-red-600">*</span>
+                            </label>
 
-							<select
-								id="sector"
-								name="sector"
-								required
-								class="h-12 w-full rounded-xl border border-slate-300 bg-white px-4 text-sm text-slate-700 outline-none transition focus:border-[#0A3D91] focus:ring-4 focus:ring-blue-100"
-							>
+                            <select
+                                id="sector"
+                                name="sector"
+                                required
+                                class="h-12 w-full rounded-xl border border-slate-300 bg-white px-4 text-sm text-slate-700 outline-none transition focus:border-[#0A3D91] focus:ring-4 focus:ring-blue-100"
+                            >
 <option value="">SELECCIONE EL SECTOR</option>
 </select>
-						</div>
+                        </div>
 
-						<div>
-							<label
-								for="barrio"
-								class="mb-2 block text-sm font-semibold text-slate-700"
-							>
-								Barrio, recinto o comunidad
-								<span class="text-red-600">*</span>
-							</label>
+                        <div>
+                            <label
+                                for="barrio"
+                                class="mb-2 block text-sm font-semibold text-slate-700"
+                            >
+                                Barrio, recinto o comunidad
+                                <span class="text-red-600">*</span>
+                            </label>
 
-							<input
-								id="barrio" maxlength="200" data-mayusculas
-								name="barrio"
-								type="text"
-								required
-								placeholder="Ingrese el nombre del lugar"
-								class="uppercase h-12 w-full rounded-xl border border-slate-300 px-4 text-sm outline-none transition placeholder:text-slate-400 focus:border-[#0A3D91] focus:ring-4 focus:ring-blue-100"
-							/>
-						</div>
+                            <input
+                                id="barrio" maxlength="200" data-mayusculas
+                                name="barrio"
+                                type="text"
+                                required
+                                placeholder="Ingrese el nombre del lugar"
+                                class="uppercase h-12 w-full rounded-xl border border-slate-300 px-4 text-sm outline-none transition placeholder:text-slate-400 focus:border-[#0A3D91] focus:ring-4 focus:ring-blue-100"
+                            />
+                        </div>
 
-						<div>
-							<label
-								for="referencia"
-								class="mb-2 block text-sm font-semibold text-slate-700"
-							>
-								Referencia de ubicación
-							</label>
+                        <div>
+                            <label
+                                for="referencia"
+                                class="mb-2 block text-sm font-semibold text-slate-700"
+                            >
+                                Referencia de ubicación
+                            </label>
 
-							<input
-								id="referencia" maxlength="300" data-mayusculas
-								name="referencia"
-								type="text"
-								placeholder="Ejemplo: frente a la escuela..."
-								class="uppercase h-12 w-full rounded-xl border border-slate-300 px-4 text-sm outline-none transition placeholder:text-slate-400 focus:border-[#0A3D91] focus:ring-4 focus:ring-blue-100"
-							/>
-						</div>
-					</div>
-				</fieldset>
+                            <input
+                                id="referencia" maxlength="300" data-mayusculas
+                                name="referencia"
+                                type="text"
+                                placeholder="Ejemplo: frente a la escuela..."
+                                class="uppercase h-12 w-full rounded-xl border border-slate-300 px-4 text-sm outline-none transition placeholder:text-slate-400 focus:border-[#0A3D91] focus:ring-4 focus:ring-blue-100"
+                            />
+                        </div>
+                    </div>
+                </fieldset>
 
-				<!-- ================================================= -->
-				<!-- PROBLEMA REPORTADO -->
-				<!-- ================================================= -->
+                <!-- ================================================= -->
+                <!-- PROBLEMA REPORTADO -->
+                <!-- ================================================= -->
 
-				<fieldset class="mt-8">
-					<legend class="mb-4 text-sm font-bold text-[#061B4E]">
-						Problema reportado
-						<span class="text-red-600">*</span>
-					</legend>
+                <fieldset class="mt-8">
+                    <legend class="mb-4 text-sm font-bold text-[#061B4E]">
+                        Problema reportado
+                        <span class="text-red-600">*</span>
+                    </legend>
 
                     <div id="opciones-problemas" class="grid gap-3 rounded-2xl border border-blue-100 bg-[#F5FAFF] p-5 sm:grid-cols-2 lg:grid-cols-3"></div>
 
-					<p
-						id="error-problema"
-						class="mt-2 hidden text-sm font-semibold text-red-600"
-					>
-						Seleccione al menos un problema.
-					</p>
-				</fieldset>
+                    <p
+                        id="error-problema"
+                        class="mt-2 hidden text-sm font-semibold text-red-600"
+                    >
+                        Seleccione al menos un problema.
+                    </p>
+                </fieldset>
 
-				<!-- ================================================= -->
-				<!-- MAPA -->
-				<!-- ================================================= -->
+                <!-- ================================================= -->
+                <!-- MAPA -->
+                <!-- ================================================= -->
 
-				<div
-					class="mt-8 rounded-2xl border border-slate-200 bg-white p-5 sm:p-6"
-				>
-					<MapaSelector
-						nombreLatitud="latitud"
-						nombreLongitud="longitud"
-						requerido={true}
-						altura="normal"
-					/>
-				</div>
+                <div
+                    class="mt-8 rounded-2xl border border-slate-200 bg-white p-5 sm:p-6"
+                >
+                    <MapaSelector
+                        nombreLatitud="latitud"
+                        nombreLongitud="longitud"
+                        requerido={true}
+                        altura="normal"
+                    />
+                </div>
 
-				<!-- ================================================= -->
-				<!-- EVIDENCIAS -->
-				<!-- ================================================= -->
+                <!-- ================================================= -->
+                <!-- EVIDENCIAS -->
+                <!-- ================================================= -->
 
-				<div class="mt-8">
-					<p class="mb-2 block text-sm font-semibold text-slate-700">
-						Fotografías o videos
-					</p>
+                <div class="mt-8">
+                    <p class="mb-2 block text-sm font-semibold text-slate-700">
+                        Fotografías o videos
+                    </p>
 
-					<button
-						id="btn-seleccionar-evidencias"
-						type="button"
-						class="flex w-full cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50 px-6 py-7 text-center transition hover:border-[#0A3D91] hover:bg-blue-50 focus:outline-none focus:ring-4 focus:ring-blue-100 disabled:cursor-not-allowed disabled:opacity-60"
-					>
-						<span
-							class="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-[#EAF4FF] text-[#0A3D91]"
-						>
-							<svg
-								xmlns="http://www.w3.org/2000/svg"
-								viewBox="0 0 24 24"
-								fill="none"
-								stroke="currentColor"
-								stroke-width="2"
-								class="h-6 w-6"
-								aria-hidden="true"
-							>
-								<path
-									d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"
-								></path>
-								<polyline points="17 8 12 3 7 8"></polyline>
-								<line x1="12" y1="3" x2="12" y2="15"></line>
-							</svg>
-						</span>
+                    <button
+                        id="btn-seleccionar-evidencias"
+                        type="button"
+                        class="flex w-full cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50 px-6 py-7 text-center transition hover:border-[#0A3D91] hover:bg-blue-50 focus:outline-none focus:ring-4 focus:ring-blue-100 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                        <span
+                            class="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-[#EAF4FF] text-[#0A3D91]"
+                        >
+                            <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                                class="h-6 w-6"
+                                aria-hidden="true"
+                            >
+                                <path
+                                    d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"
+                                ></path>
+                                <polyline points="17 8 12 3 7 8"></polyline>
+                                <line x1="12" y1="3" x2="12" y2="15"></line>
+                            </svg>
+                        </span>
 
-						<span class="font-bold text-[#061B4E]">
-							Seleccione fotografías o videos
-						</span>
+                        <span class="font-bold text-[#061B4E]">
+                            Seleccione fotografías o videos
+                        </span>
 
-						<span class="mt-1 text-xs text-slate-500">
-							Archivos JPG, PNG o MP4. Máximo 30 MB por archivo.
-						</span>
-					</button>
+                        <span class="mt-1 text-xs text-slate-500">
+                            Archivos JPG, PNG o MP4. Máximo 30 MB por archivo.
+                        </span>
+                    </button>
 
-					<input
-						id="evidencias"
-						name="evidencias"
-						type="file"
-						multiple
-						accept="image/jpeg,image/png,video/mp4"
-						class="hidden"
-					/>
+                    <input
+                        id="evidencias"
+                        name="evidencias"
+                        type="file"
+                        multiple
+                        accept="image/jpeg,image/png,video/mp4"
+                        class="hidden"
+                    />
 
-					<div
-						id="lista-archivos"
-						class="mt-3 hidden rounded-xl border border-slate-200 bg-white p-4"
-					>
-						<p class="text-sm font-bold text-[#061B4E]">
-							Archivos seleccionados
-						</p>
+                    <div
+                        id="lista-archivos"
+                        class="mt-3 hidden rounded-xl border border-slate-200 bg-white p-4"
+                    >
+                        <p class="text-sm font-bold text-[#061B4E]">
+                            Archivos seleccionados
+                        </p>
 
-						<ul
-							id="archivos-seleccionados"
-							class="mt-2 space-y-1.5 text-sm text-slate-600"
-						>
-						</ul>
-					</div>
+                        <ul
+                            id="archivos-seleccionados"
+                            class="mt-2 space-y-1.5 text-sm text-slate-600"
+                        >
+                        </ul>
+                    </div>
 
-					<p id="sin-archivos" class="mt-2 text-sm text-slate-500">
-						Ningún archivo seleccionado.
-					</p>
-				</div>
+                    <p id="sin-archivos" class="mt-2 text-sm text-slate-500">
+                        Ningún archivo seleccionado.
+                    </p>
+                </div>
 
-				<!-- ================================================= -->
-				<!-- DESCRIPCIÓN -->
-				<!-- ================================================= -->
+                <!-- ================================================= -->
+                <!-- DESCRIPCIÓN -->
+                <!-- ================================================= -->
 
-				<div class="mt-8">
-					<label
-						for="descripcion"
-						class="mb-2 block text-sm font-semibold text-slate-700"
-					>
-						Descripción de la denuncia
-						<span class="text-red-600">*</span>
-					</label>
+                <div class="mt-8">
+                    <label
+                        for="descripcion"
+                        class="mb-2 block text-sm font-semibold text-slate-700"
+                    >
+                        Descripción de la denuncia
+                        <span class="text-red-600">*</span>
+                    </label>
 
-					<textarea
-						id="descripcion" data-mayusculas
-						name="descripcion"
-						required
-						minlength="20"
-						maxlength="1000"
-						rows="5"
-						placeholder="Describa las condiciones actuales de la cuneta, desde cuándo existe el problema y cualquier riesgo o afectación observada..."
-						class="uppercase w-full resize-y rounded-xl border border-slate-300 px-4 py-3 text-sm leading-6 outline-none transition placeholder:text-slate-400 focus:border-[#0A3D91] focus:ring-4 focus:ring-blue-100"
-					></textarea>
+                    <textarea
+                        id="descripcion" data-mayusculas
+                        name="descripcion"
+                        required
+                        minlength="20"
+                        maxlength="1000"
+                        rows="5"
+                        placeholder="Describa las condiciones actuales de la cuneta, desde cuándo existe el problema y cualquier riesgo o afectación observada..."
+                        class="uppercase w-full resize-y rounded-xl border border-slate-300 px-4 py-3 text-sm leading-6 outline-none transition placeholder:text-slate-400 focus:border-[#0A3D91] focus:ring-4 focus:ring-blue-100"
+                    ></textarea>
 
-					<div class="mt-2 flex items-center justify-between gap-4">
-						<p class="text-xs text-slate-500">
-							Ingrese al menos 20 caracteres.
-						</p>
+                    <div class="mt-2 flex items-center justify-between gap-4">
+                        <p class="text-xs text-slate-500">
+                            Ingrese al menos 20 caracteres.
+                        </p>
 
-						<p
-							id="contador-descripcion"
-							class="text-xs font-semibold text-slate-500"
-						>
-							0 / 1000
-						</p>
-					</div>
-				</div>
+                        <p
+                            id="contador-descripcion"
+                            class="text-xs font-semibold text-slate-500"
+                        >
+                            0 / 1000
+                        </p>
+                    </div>
+                </div>
 
-				<!-- ================================================= -->
-				<!-- DECLARACIÓN -->
-				<!-- ================================================= -->
+                <!-- ================================================= -->
+                <!-- DECLARACIÓN -->
+                <!-- ================================================= -->
 
-				<label
-					class="mt-6 flex cursor-pointer items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4"
-				>
-					<input
-						id="declaracion" name="declaracion" value="true"
-						type="checkbox"
-						required
-						class="mt-0.5 h-5 w-5 shrink-0 rounded border-slate-300 accent-[#0A3D91]"
-					/>
+                <label
+                    class="mt-6 flex cursor-pointer items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4"
+                >
+                    <input
+                        id="declaracion" name="declaracion" value="true"
+                        type="checkbox"
+                        required
+                        class="mt-0.5 h-5 w-5 shrink-0 rounded border-slate-300 accent-[#0A3D91]"
+                    />
 
-					<span class="text-sm leading-6 text-slate-600">
-						Declaro que la información proporcionada es correcta y
-						que la denuncia corresponde a hechos reales. Conozco que
-						el registro de información falsa o evidencias
-						manipuladas puede generar responsabilidades conforme a
-						la normativa aplicable.
-					</span>
-				</label>
+                    <span class="text-sm leading-6 text-slate-600">
+                        Declaro que la información proporcionada es correcta y
+                        que la denuncia corresponde a hechos reales. Conozco que
+                        el registro de información falsa o evidencias
+                        manipuladas puede generar responsabilidades conforme a
+                        la normativa aplicable.
+                    </span>
+                </label>
 
-				<!-- ================================================= -->
-				<!-- ACCIONES -->
-				<!-- ================================================= -->
+                <!-- ================================================= -->
+                <!-- ACCIONES -->
+                <!-- ================================================= -->
 
-				<div
-					class="mt-8 flex flex-col-reverse gap-3 border-t border-slate-200 pt-6 sm:flex-row sm:justify-end"
-				>
-					<button
-						id="btn-limpiar"
-						type="button"
-						class="inline-flex h-12 items-center justify-center rounded-xl border border-slate-300 px-6 font-bold text-slate-600 transition hover:bg-slate-100 focus:outline-none focus:ring-4 focus:ring-slate-200 disabled:cursor-not-allowed disabled:opacity-60"
-					>
-						Limpiar formulario
-					</button>
+                <div
+                    class="mt-8 flex flex-col-reverse gap-3 border-t border-slate-200 pt-6 sm:flex-row sm:justify-end"
+                >
+                    <button
+                        id="btn-limpiar"
+                        type="button"
+                        class="inline-flex h-12 items-center justify-center rounded-xl border border-slate-300 px-6 font-bold text-slate-600 transition hover:bg-slate-100 focus:outline-none focus:ring-4 focus:ring-slate-200 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                        Limpiar formulario
+                    </button>
 
-					<button
-						id="btn-enviar" disabled
-						type="submit"
-						class="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-[#061B4E] px-8 font-bold text-white shadow-lg shadow-blue-950/20 transition hover:bg-[#0A3D91] focus:outline-none focus:ring-4 focus:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-60"
-					>
-						<svg
-							id="icono-enviar"
-							xmlns="http://www.w3.org/2000/svg"
-							viewBox="0 0 24 24"
-							fill="none"
-							stroke="currentColor"
-							stroke-width="2"
-							class="h-5 w-5"
-							aria-hidden="true"
-						>
-							<line x1="22" y1="2" x2="11" y2="13"></line>
-							<polygon points="22 2 15 22 11 13 2 9 22 2">
-							</polygon>
-						</svg>
+                    <button
+                        id="btn-enviar" disabled
+                        type="submit"
+                        class="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-[#061B4E] px-8 font-bold text-white shadow-lg shadow-blue-950/20 transition hover:bg-[#0A3D91] focus:outline-none focus:ring-4 focus:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                        <svg
+                            id="icono-enviar"
+                            xmlns="http://www.w3.org/2000/svg"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            class="h-5 w-5"
+                            aria-hidden="true"
+                        >
+                            <line x1="22" y1="2" x2="11" y2="13"></line>
+                            <polygon points="22 2 15 22 11 13 2 9 22 2">
+                            </polygon>
+                        </svg>
 
-						<svg
-							id="icono-cargando"
-							class="hidden h-5 w-5 animate-spin"
-							xmlns="http://www.w3.org/2000/svg"
-							fill="none"
-							viewBox="0 0 24 24"
-							aria-hidden="true"
-						>
-							<circle
-								class="opacity-25"
-								cx="12"
-								cy="12"
-								r="10"
-								stroke="currentColor"
-								stroke-width="4"
-							>
-							</circle>
+                        <svg
+                            id="icono-cargando"
+                            class="hidden h-5 w-5 animate-spin"
+                            xmlns="http://www.w3.org/2000/svg"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            aria-hidden="true"
+                        >
+                            <circle
+                                class="opacity-25"
+                                cx="12"
+                                cy="12"
+                                r="10"
+                                stroke="currentColor"
+                                stroke-width="4"
+                            >
+                            </circle>
 
-							<path
-								class="opacity-75"
-								fill="currentColor"
-								d="M4 12a8 8 0 0 1 8-8v4a4 4 0 0 0-4 4H4Z"
-							>
-							</path>
-						</svg>
+                            <path
+                                class="opacity-75"
+                                fill="currentColor"
+                                d="M4 12a8 8 0 0 1 8-8v4a4 4 0 0 0-4 4H4Z"
+                            >
+                            </path>
+                        </svg>
 
-						<span id="texto-btn-enviar">
-							Enviar denuncia
-						</span>
-					</button>
-				</div>
-			</fieldset>
+                        <span id="texto-btn-enviar">
+                            Enviar denuncia
+                        </span>
+                    </button>
+                </div>
+            </fieldset>
             </form>
-		</div>
-	</div>
+        </div>
+    </div>
 </section>
 
 <script>
@@ -665,11 +675,15 @@ const CATALOGOS_DENUNCIA_URL = API_URL ? `${API_URL}/public/denuncias/catalogos`
  }
 
  function inicializarFormulario() {
-  const form = document.querySelector<HTMLFormElement>("#form-denuncia");
-  if (!form || form.dataset.initialized === "true") return;
+  const elementoFormulario = document.querySelector<HTMLFormElement>("#form-denuncia");
+  if (!elementoFormulario || elementoFormulario.dataset.initialized === "true") return;
+  const form: HTMLFormElement = elementoFormulario;
+  const raiz = form.closest<HTMLElement>("[data-denuncia-contenedor]");
+  if (!raiz) return;
+  const contenedor: HTMLElement = raiz;
   form.dataset.initialized = "true";
   const campo = <T extends Element>(selector: string) => {
-   const element = form.querySelector<T>(selector);
+   const element = contenedor.querySelector<T>(selector);
    if (!element) throw new Error(`Falta el elemento ${selector} del formulario.`);
    return element;
   };
@@ -679,6 +693,8 @@ const CATALOGOS_DENUNCIA_URL = API_URL ? `${API_URL}/public/denuncias/catalogos`
   const problemas = campo<HTMLDivElement>("#opciones-problemas");
   const estadoCatalogos = campo<HTMLDivElement>("#estado-catalogos");
   const mensajeCatalogos = campo<HTMLParagraphElement>("#mensaje-catalogos");
+  const tituloCatalogos = campo<HTMLHeadingElement>("#titulo-catalogos");
+  const encabezado = campo<HTMLElement>("#encabezado-formulario");
   const reintentar = campo<HTMLButtonElement>("#btn-reintentar-catalogos");
   const estadoRegistro = campo<HTMLParagraphElement>("#estado-registro");
   const fecha = campo<HTMLInputElement>("#fecha-denuncia");
@@ -752,6 +768,10 @@ const CATALOGOS_DENUNCIA_URL = API_URL ? `${API_URL}/public/denuncias/catalogos`
    });
   };
   const refrescarEstado = () => {
+   const disponible = catalogos !== null && !cargando;
+   form.classList.toggle("hidden", !disponible);
+   encabezado.classList.toggle("hidden", !disponible);
+   estadoCatalogos.classList.toggle("hidden", disponible);
    campos.disabled = !catalogos || enviando;
    enviar.disabled = !catalogos || enviando || confirmacionPendiente;
    limpiar.disabled = !catalogos || enviando;
@@ -768,59 +788,105 @@ const CATALOGOS_DENUNCIA_URL = API_URL ? `${API_URL}/public/denuncias/catalogos`
    opciones.forEach(o => select.add(new Option(mayusculas(o.nombre), o.codigo)));
   };
   const renderizarCatalogos = (data: Catalogos) => {
-   tipos.replaceChildren();
-   data["tipo-denuncia"].forEach(opcion => {
+  tipos.replaceChildren();
+
+  // ANÓNIMA primero: izquierda en escritorio y arriba en celular.
+  const tiposOrdenados = [...data["tipo-denuncia"]].sort(
+    (a, b) =>
+      Number(b.codigo === "ANONIMA") -
+      Number(a.codigo === "ANONIMA"),
+  );
+
+  tiposOrdenados.forEach((opcion) => {
     const card = document.createElement("label");
+
     card.dataset.tipoCard = opcion.codigo;
-    card.className = "relative flex cursor-pointer items-start gap-4 rounded-2xl border-2 border-slate-200 bg-white p-5 transition hover:border-slate-300";
+    card.className =
+      "relative flex cursor-pointer items-start gap-4 rounded-2xl border-2 border-slate-200 bg-white p-5 transition hover:border-slate-300";
+
     const input = document.createElement("input");
+
     input.id = `tipo-${opcion.codigo.toLowerCase()}`;
-    input.type = "radio"; input.name = "tipoDenuncia"; input.value = opcion.codigo; input.required = true;
+    input.type = "radio";
+    input.name = "tipoDenuncia";
+    input.value = opcion.codigo;
+    input.required = true;
     input.defaultChecked = opcion.codigo === "ANONIMA";
     input.checked = input.defaultChecked;
     input.className = "mt-1 h-5 w-5 shrink-0 accent-[#0A3D91]";
+
     const contenido = document.createElement("span");
     const titulo = document.createElement("span");
+
     titulo.className = "block font-extrabold text-[#061B4E]";
     titulo.textContent = mayusculas(opcion.nombre);
+
     contenido.append(titulo);
+
     if (opcion.descripcion) {
-     const detalle = document.createElement("span");
-     detalle.className = "mt-2 block text-sm leading-6 text-slate-600";
-     detalle.textContent = mayusculas(opcion.descripcion);
-     contenido.append(detalle);
+      const detalle = document.createElement("span");
+
+      detalle.className =
+        "mt-2 block text-sm leading-6 text-slate-600";
+      detalle.textContent = mayusculas(opcion.descripcion);
+
+      contenido.append(detalle);
     }
-    card.append(input, contenido); tipos.append(card);
-   });
-   llenarSelect("#tipo-denunciante", data["tipo-denunciante"], "SELECCIONE UNA OPCIÓN");
-   llenarSelect("#canton", data.canton, "SELECCIONE EL CANTÓN");
-   llenarSelect("#sector", data.sector, "SELECCIONE EL SECTOR");
-   problemas.replaceChildren();
-   data["problema-reportado"].forEach(opcion => {
+
+    card.append(input, contenido);
+    tipos.append(card);
+  });
+
+  llenarSelect(
+    "#tipo-denunciante",
+    data["tipo-denunciante"],
+    "SELECCIONE UNA OPCIÓN",
+  );
+
+  llenarSelect("#canton", data.canton, "SELECCIONE EL CANTÓN");
+  llenarSelect("#sector", data.sector, "SELECCIONE EL SECTOR");
+
+  problemas.replaceChildren();
+
+  data["problema-reportado"].forEach((opcion) => {
     const label = document.createElement("label");
-    label.className = "flex cursor-pointer items-center gap-3 rounded-xl border border-blue-100 bg-white p-4 transition hover:border-[#0A3D91]";
+
+    label.className =
+      "flex cursor-pointer items-center gap-3 rounded-xl border border-blue-100 bg-white p-4 transition hover:border-[#0A3D91]";
+
     const input = document.createElement("input");
-    input.type = "checkbox"; input.name = "problemaReportado"; input.value = opcion.codigo; input.dataset.problema = "";
-    input.className = "h-5 w-5 rounded border-slate-300 accent-[#0A3D91]";
+
+    input.type = "checkbox";
+    input.name = "problemaReportado";
+    input.value = opcion.codigo;
+    input.dataset.problema = "";
+    input.className =
+      "h-5 w-5 rounded border-slate-300 accent-[#0A3D91]";
+
     const nombre = document.createElement("span");
+
     nombre.className = "text-sm font-semibold text-slate-700";
     nombre.textContent = mayusculas(opcion.nombre);
-    label.append(input, nombre); problemas.append(label);
-   });
-  };
+
+    label.append(input, nombre);
+    problemas.append(label);
+  });
+};
   const cargarCatalogos = async () => {
    if (cargando || enviando) return;
    cargando = true;
    estadoCatalogos.classList.remove("hidden");
    estadoCatalogos.setAttribute("role", "status");
-   mensajeCatalogos.textContent = "CARGANDO OPCIONES DEL FORMULARIO...";
+   catalogos = null;
+   tituloCatalogos.textContent = "Estamos preparando el formulario";
+   mensajeCatalogos.textContent = "Por favor, espere un momento.";
    reintentar.classList.add("hidden"); reintentar.disabled = true;
    refrescarEstado();
    const controller = new AbortController();
    const timeout = window.setTimeout(() => controller.abort(), 15000);
    try {
     const endpoint = form.dataset.catalogosEndpoint;
-    if (!endpoint) throw new Error("NO SE ENCUENTRA CONFIGURADA PUBLIC_API_URL.");
+    if (!endpoint || !form.dataset.endpoint) throw new Error("No están configurados los servicios del formulario.");
     const response = await fetch(endpoint, { headers: { Accept: "application/json" }, cache: "no-store", signal: controller.signal });
     if (!response.ok) throw new Error("NO FUE POSIBLE CONSULTAR LOS CATÁLOGOS. COMPRUEBE QUE EL BACKEND ESTÉ DISPONIBLE.");
     const data: unknown = await response.json();
@@ -833,12 +899,14 @@ const CATALOGOS_DENUNCIA_URL = API_URL ? `${API_URL}/public/denuncias/catalogos`
     catalogos = null;
     console.error("[FORMULARIO] Error de catálogos:", error);
     estadoCatalogos.setAttribute("role", "alert");
-    mensajeCatalogos.textContent = error instanceof Error && error.name !== "AbortError" ? error.message : "NO FUE POSIBLE CARGAR LAS OPCIONES. REVISE SU CONEXIÓN E INTENTE NUEVAMENTE.";
+    tituloCatalogos.textContent = "Estamos en mantenimiento";
+    mensajeCatalogos.textContent = "En este momento el formulario no está disponible. Por favor, intente nuevamente más tarde. Gracias por su comprensión.";
     reintentar.classList.remove("hidden");
    } finally {
     window.clearTimeout(timeout);
     cargando = false; reintentar.disabled = false;
     refrescarEstado();
+    if (catalogos) window.requestAnimationFrame(() => window.dispatchEvent(new Event("resize")));
    }
   };
   const validarArchivos = (): string | null => {
@@ -934,7 +1002,7 @@ const CATALOGOS_DENUNCIA_URL = API_URL ? `${API_URL}/public/denuncias/catalogos`
    const errorArchivos = validarArchivos();
    if (errorArchivos) { mostrarError({ titulo: "Evidencia no válida", mensaje: errorArchivos }); return; }
    const endpoint = form.dataset.endpoint;
-   if (!endpoint) { mostrarError({ titulo: "Servicio no configurado", mensaje: "NO SE ENCUENTRA CONFIGURADA PUBLIC_API_URL." }); return; }
+   if (!endpoint) { mostrarError({ titulo: "Servicio temporalmente no disponible", mensaje: "EN ESTE MOMENTO NO PODEMOS RECIBIR SU DENUNCIA. POR FAVOR, INTENTE NUEVAMENTE MÁS TARDE. GRACIAS POR SU COMPRENSIÓN." }); return; }
    // Capturar ANTES de deshabilitar los controles; los disabled no entran en FormData.
    const body = new FormData(form);
    body.set("declaracion", "true");
@@ -948,7 +1016,7 @@ const CATALOGOS_DENUNCIA_URL = API_URL ? `${API_URL}/public/denuncias/catalogos`
     try { const parsed: unknown = await response.json(); if (objeto(parsed)) data = parsed; } catch { /* Se trata debajo como respuesta no confirmada. */ }
     if (!response.ok) {
      const referencia = texto(data?.numero_referencia);
-     const mensaje = texto(data?.error) || "NO FUE POSIBLE REGISTRAR LA DENUNCIA.";
+     const mensaje = response.status >= 500 ? "EN ESTE MOMENTO NO PODEMOS COMPLETAR EL REGISTRO. POR FAVOR, INTENTE NUEVAMENTE MÁS TARDE." : texto(data?.error) || "NO FUE POSIBLE REGISTRAR LA DENUNCIA.";
      if (referencia) {
       confirmacionPendiente = true;
       const detalle = `REFERENCIA: ${referencia}. CONSULTE EL SEGUIMIENTO ANTES DE VOLVER A REGISTRAR. CONSERVE ESTE NÚMERO. PARA INICIAR OTRA DENUNCIA UTILICE LIMPIAR FORMULARIO.`;
@@ -984,4 +1052,4 @@ const CATALOGOS_DENUNCIA_URL = API_URL ? `${API_URL}/public/denuncias/catalogos`
  }
  inicializarFormulario();
  document.addEventListener("astro:page-load", inicializarFormulario);
-</script>
+</script

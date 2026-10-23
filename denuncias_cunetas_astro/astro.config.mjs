@@ -1,5 +1,18 @@
-// @ts-check
-import { defineConfig } from 'astro/config';
+import { defineConfig } from "astro/config";
+import tailwindcss from "@tailwindcss/vite";
 
-// https://astro.build/config
-export default defineConfig({});
+export default defineConfig({
+	vite: {
+		plugins: [tailwindcss()],
+		server: {
+			allowedHosts: [
+				"ordenanza-cunetas.gptsachila.gob.ec",
+			],
+		},
+		preview: {
+			allowedHosts: [
+				"ordenanza-cunetas.gptsachila.gob.ec",
+			],
+		},
+	},
+});

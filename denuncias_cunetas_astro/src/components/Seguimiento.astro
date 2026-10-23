@@ -1,13 +1,26 @@
 ---
-const API_URL = import.meta.env.PUBLIC_API_URL;
-const SEGUIMIENTO_DENUNCIA_URL = `${API_URL}/public/denuncias/seguimiento`;
+let API_URL = (import.meta.env.PUBLIC_API_URL ?? "").trim();
+while (API_URL.endsWith("/")) API_URL = API_URL.slice(0, -1);
+const SEGUIMIENTO_DENUNCIA_URL = API_URL ? `${API_URL}/public/denuncias/seguimiento` : "";
+const DISPONIBILIDAD_URL = API_URL ? `${API_URL}/public/denuncias/catalogos` : "";
 ---
 
-<section class="min-h-full bg-slate-100 px-4 py-10 sm:px-6 lg:px-8">
+<section data-seguimiento-contenedor data-disponibilidad-endpoint={DISPONIBILIDAD_URL} class="min-h-full bg-slate-100 px-4 py-10 sm:px-6 lg:px-8">
 	<div class="mx-auto w-full max-w-5xl">
 		<div
 			class="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-xl shadow-slate-900/5"
 		>
+
+            <div id="estado-servicio-seguimiento" role="status" aria-live="polite" aria-atomic="true" class="px-6 py-14 text-center sm:px-10 sm:py-20">
+                <div class="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-50 text-[#0A3D91]" aria-hidden="true">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" class="h-8 w-8"><path d="M12 8v4l3 2" /><circle cx="12" cy="12" r="9" /></svg>
+                </div>
+                <h2 id="titulo-servicio-seguimiento" class="text-2xl font-extrabold text-[#061B4E] sm:text-3xl">Estamos preparando la consulta</h2>
+                <p id="mensaje-servicio-seguimiento" class="mx-auto mt-4 max-w-xl text-sm leading-7 text-slate-600 sm:text-base">Por favor, espere un momento.</p>
+                <button id="btn-reintentar-seguimiento" type="button" class="mt-7 hidden rounded-xl bg-[#061B4E] px-6 py-3 text-sm font-bold text-white transition hover:bg-[#0A3D91] focus:outline-none focus:ring-4 focus:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-60">Volver a intentar</button>
+                <noscript><p class="mx-auto mt-5 max-w-xl text-sm leading-6 text-slate-600">Para utilizar este servicio, active JavaScript en su navegador y vuelva a cargar la página.</p></noscript>
+            </div>
+            <div id="contenido-seguimiento" class="hidden">
 			<!-- ===================================================== -->
 			<!-- CABECERA -->
 			<!-- ===================================================== -->
@@ -100,7 +113,7 @@ const SEGUIMIENTO_DENUNCIA_URL = `${API_URL}/public/denuncias/seguimiento`;
 									name="numeroDenuncia"
 									type="text"
 									required
-									maxlength="14"
+									maxlength="30"
 									autocomplete="off"
 									spellcheck="false"
 									placeholder="Ejemplo: DC-2026-000001"
@@ -162,6 +175,8 @@ const SEGUIMIENTO_DENUNCIA_URL = `${API_URL}/public/denuncias/seguimiento`;
 						</div>
 					</div>
 				</form>
+
+                <p id="mensaje-consulta-seguimiento" role="alert" class="mt-5 hidden rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-900"></p>
 
 				<!-- ===================================================== -->
 				<!-- RESULTADO -->
@@ -343,645 +358,180 @@ const SEGUIMIENTO_DENUNCIA_URL = `${API_URL}/public/denuncias/seguimiento`;
 					</div>
 				</div>
 			</div>
+            </div>
 		</div>
 	</div>
 </section>
 
 <script>
-	type HistorialPublico = {
-		estado: string;
-		nombre: string;
-		observacion: string | null;
-		fecha: string;
-	};
-
-	type SeguimientoResponse = {
-		numero_denuncia: string;
-		fecha_denuncia: string;
-		estado: string;
-		estado_nombre: string;
-		descripcion: string;
-		historial: HistorialPublico[];
-	};
-
-	type ErrorResponse = {
-		error?: string;
-	};
-
-	type ModalErrorDetail = {
-		titulo: string;
-		mensaje: string;
-		detalle?: string;
-	};
-
-	const inicializarSeguimiento = () => {
-		const formulario =
-			document.querySelector<HTMLFormElement>("#form-seguimiento");
-
-		if (!formulario || formulario.dataset.initialized === "true") {
-			return;
-		}
-
-		formulario.dataset.initialized = "true";
-
-		const endpoint = formulario.dataset.endpoint;
-
-		const inputNumero =
-			document.querySelector<HTMLInputElement>("#numero-denuncia");
-
-		const botonConsultar =
-			document.querySelector<HTMLButtonElement>("#btn-consultar");
-
-		const textoBoton =
-			document.querySelector<HTMLElement>("#texto-btn-consultar");
-
-		const iconoConsultar =
-			document.querySelector<HTMLElement>("#icono-consultar");
-
-		const iconoCargando =
-			document.querySelector<HTMLElement>("#icono-cargando");
-
-		const resultado =
-			document.querySelector<HTMLElement>("#resultado-seguimiento");
-
-		const resultadoNumero =
-			document.querySelector<HTMLElement>("#resultado-numero");
-
-		const resultadoFecha =
-			document.querySelector<HTMLElement>("#resultado-fecha");
-
-		const resultadoEstado =
-			document.querySelector<HTMLElement>("#resultado-estado");
-
-		const resultadoEstadoNombre =
-			document.querySelector<HTMLElement>(
-				"#resultado-estado-nombre",
-			);
-
-		const resultadoDescripcion =
-			document.querySelector<HTMLElement>(
-				"#resultado-descripcion",
-			);
-
-		const historialContenedor =
-			document.querySelector<HTMLElement>(
-				"#historial-seguimiento",
-			);
-
-		const sinHistorial =
-			document.querySelector<HTMLElement>("#sin-historial");
-
-		let consultando = false;
-
-		// =====================================================
-		// COMPONENTES GLOBALES
-		// =====================================================
-
-		const mostrarModalError = (detail: ModalErrorDetail) => {
-			window.dispatchEvent(
-				new CustomEvent("app:modal-error", {
-					detail,
-				}),
-			);
-		};
-
-		const mostrarToast = (
-			titulo: string,
-			mensaje: string,
-		) => {
-			window.dispatchEvent(
-				new CustomEvent("app:toast", {
-					detail: {
-						titulo,
-						mensaje,
-						duracion: 3500,
-					},
-				}),
-			);
-		};
-
-		// =====================================================
-		// NORMALIZAR NÚMERO
-		// =====================================================
-
-		const normalizarNumero = (value: string) => {
-			return value.trim().toUpperCase();
-		};
-
-		// =====================================================
-		// FECHA DE DENUNCIA
-		// =====================================================
-
-		const formatearFechaDenuncia = (value: string) => {
-			if (!value) {
-				return "-";
-			}
-
-			const fechaParte = value.slice(0, 10);
-			const partes = fechaParte.split("-");
-
-			if (partes.length !== 3) {
-				return value;
-			}
-
-			const [anio, mes, dia] = partes;
-
-			const fecha = new Date(
-				Number(anio),
-				Number(mes) - 1,
-				Number(dia),
-			);
-
-			if (Number.isNaN(fecha.getTime())) {
-				return value;
-			}
-
-			return new Intl.DateTimeFormat("es-EC", {
-				day: "2-digit",
-				month: "long",
-				year: "numeric",
-			}).format(fecha);
-		};
-
-		// =====================================================
-		// FECHA DEL HISTORIAL
-		// =====================================================
-
-		const formatearFechaHora = (value: string) => {
-			const fecha = new Date(value);
-
-			if (Number.isNaN(fecha.getTime())) {
-				return value;
-			}
-
-			return new Intl.DateTimeFormat("es-EC", {
-				day: "2-digit",
-				month: "long",
-				year: "numeric",
-				hour: "2-digit",
-				minute: "2-digit",
-			}).format(fecha);
-		};
-
-		// =====================================================
-		// ESTILO DEL ESTADO
-		// =====================================================
-
-		const clasesEstado: Record<string, string> = {
-			REGISTRADA:
-				"border-blue-200 bg-blue-50 text-blue-700",
-
-			EN_REVISION:
-				"border-amber-200 bg-amber-50 text-amber-700",
-
-			EN_TRAMITE:
-				"border-indigo-200 bg-indigo-50 text-indigo-700",
-
-			ATENDIDA:
-				"border-emerald-200 bg-emerald-50 text-emerald-700",
-
-			CERRADA:
-				"border-slate-300 bg-slate-100 text-slate-700",
-
-			DESCARTADA:
-				"border-red-200 bg-red-50 text-red-700",
-		};
-
-		const actualizarEstado = (
-			elemento: HTMLElement,
-			codigo: string,
-			nombre: string,
-		) => {
-			const clasesBase = [
-				"border-blue-200",
-				"bg-blue-50",
-				"text-blue-700",
-				"border-amber-200",
-				"bg-amber-50",
-				"text-amber-700",
-				"border-indigo-200",
-				"bg-indigo-50",
-				"text-indigo-700",
-				"border-emerald-200",
-				"bg-emerald-50",
-				"text-emerald-700",
-				"border-slate-300",
-				"bg-slate-100",
-				"text-slate-700",
-				"border-red-200",
-				"bg-red-50",
-				"text-red-700",
-			];
-
-			elemento.classList.remove(...clasesBase);
-
-			const clases =
-				clasesEstado[codigo] ??
-				"border-slate-200 bg-slate-50 text-slate-700";
-
-			elemento.classList.add(...clases.split(" "));
-			elemento.textContent = nombre;
-		};
-
-		// =====================================================
-		// ESTADO DE CONSULTA
-		// =====================================================
-
-		const cambiarEstadoConsulta = (estado: boolean) => {
-			consultando = estado;
-
-			if (botonConsultar) {
-				botonConsultar.disabled = estado;
-			}
-
-			if (inputNumero) {
-				inputNumero.disabled = estado;
-			}
-
-			if (textoBoton) {
-				textoBoton.textContent = estado
-					? "Consultando..."
-					: "Consultar";
-			}
-
-			iconoConsultar?.classList.toggle("hidden", estado);
-			iconoCargando?.classList.toggle("hidden", !estado);
-		};
-
-		// =====================================================
-		// OCULTAR RESULTADO
-		// =====================================================
-
-		const ocultarResultado = () => {
-			resultado?.classList.add("hidden");
-
-			if (historialContenedor) {
-				historialContenedor.innerHTML = "";
-			}
-		};
-
-		// =====================================================
-		// CREAR ITEM DEL HISTORIAL
-		// =====================================================
-
-		const crearHistorialItem = (
-			item: HistorialPublico,
-			ultimo: boolean,
-		) => {
-			const contenedor = document.createElement("div");
-			contenedor.className = "relative flex gap-4";
-
-			const columnaIndicador = document.createElement("div");
-			columnaIndicador.className =
-				"relative flex w-8 shrink-0 justify-center";
-
-			const indicador = document.createElement("span");
-			indicador.className =
-				"relative z-10 mt-1 flex h-8 w-8 items-center justify-center rounded-full border-4 border-white bg-[#0A3D91] shadow";
-
-			const punto = document.createElement("span");
-			punto.className =
-				"h-2.5 w-2.5 rounded-full bg-white";
-
-			indicador.appendChild(punto);
-			columnaIndicador.appendChild(indicador);
-
-			if (!ultimo) {
-				const linea = document.createElement("span");
-
-				linea.className =
-					"absolute left-1/2 top-8 h-[calc(100%-1rem)] w-px -translate-x-1/2 bg-slate-200";
-
-				columnaIndicador.appendChild(linea);
-			}
-
-			const contenido = document.createElement("div");
-
-			contenido.className = ultimo
-				? "min-w-0 flex-1 pb-1"
-				: "min-w-0 flex-1 pb-7";
-
-			const cabecera = document.createElement("div");
-
-			cabecera.className =
-				"flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between";
-
-			const nombre = document.createElement("p");
-
-			nombre.className =
-				"font-extrabold text-[#061B4E]";
-
-			nombre.textContent = item.nombre;
-
-			const fecha = document.createElement("p");
-
-			fecha.className =
-				"text-xs font-medium text-slate-500";
-
-			fecha.textContent =
-				formatearFechaHora(item.fecha);
-
-			cabecera.appendChild(nombre);
-			cabecera.appendChild(fecha);
-
-			const codigo = document.createElement("p");
-
-			codigo.className =
-				"mt-1 text-xs font-bold uppercase tracking-[0.12em] text-[#0A3D91]";
-
-			codigo.textContent =
-				item.estado.replaceAll("_", " ");
-
-			contenido.appendChild(cabecera);
-			contenido.appendChild(codigo);
-
-			if (item.observacion?.trim()) {
-				const observacion = document.createElement("p");
-
-				observacion.className =
-					"mt-2 rounded-xl bg-slate-50 px-4 py-3 text-sm leading-6 text-slate-600";
-
-				observacion.textContent =
-					item.observacion;
-
-				contenido.appendChild(observacion);
-			}
-
-			contenedor.appendChild(columnaIndicador);
-			contenedor.appendChild(contenido);
-
-			return contenedor;
-		};
-
-		// =====================================================
-		// MOSTRAR RESULTADO
-		// =====================================================
-
-		const mostrarResultado = (data: SeguimientoResponse) => {
-			if (
-				!resultado ||
-				!resultadoNumero ||
-				!resultadoFecha ||
-				!resultadoEstado ||
-				!resultadoEstadoNombre ||
-				!resultadoDescripcion ||
-				!historialContenedor
-			) {
-				return;
-			}
-
-			resultadoNumero.textContent =
-				data.numero_denuncia;
-
-			resultadoFecha.textContent =
-				formatearFechaDenuncia(
-					data.fecha_denuncia,
-				);
-
-			resultadoEstadoNombre.textContent =
-				data.estado_nombre;
-
-			resultadoDescripcion.textContent =
-				data.descripcion;
-
-			actualizarEstado(
-				resultadoEstado,
-				data.estado,
-				data.estado_nombre,
-			);
-
-			historialContenedor.innerHTML = "";
-
-			const historial =
-				Array.isArray(data.historial)
-					? data.historial
-					: [];
-
-			sinHistorial?.classList.toggle(
-				"hidden",
-				historial.length > 0,
-			);
-
-			historial.forEach((item, index) => {
-				historialContenedor.appendChild(
-					crearHistorialItem(
-						item,
-						index === historial.length - 1,
-					),
-				);
-			});
-
-			resultado.classList.remove("hidden");
-
-			resultado.scrollIntoView({
-				behavior: "smooth",
-				block: "start",
-			});
-		};
-
-		// =====================================================
-		// INPUT
-		// =====================================================
-
-		inputNumero?.addEventListener("input", () => {
-			inputNumero.value =
-				inputNumero.value.toUpperCase();
-
-			/*
-				Si el ciudadano modifica el número después de
-				haber realizado una consulta, ocultamos el
-				resultado anterior para evitar confusión.
-			*/
-			ocultarResultado();
-		});
-
-		// =====================================================
-		// CONSULTA
-		// =====================================================
-
-		formulario.addEventListener(
-			"submit",
-			async (event) => {
-				event.preventDefault();
-
-				if (consultando) {
-					return;
-				}
-
-				if (!formulario.checkValidity()) {
-					formulario.reportValidity();
-					return;
-				}
-
-				if (!endpoint) {
-					mostrarModalError({
-						titulo: "Servicio no configurado",
-						mensaje:
-							"No se encuentra configurada la dirección del servicio de seguimiento.",
-						detalle:
-							"No es posible realizar la consulta en este momento.",
-					});
-
-					return;
-				}
-
-				const numero =
-					normalizarNumero(
-						inputNumero?.value ?? "",
-					);
-
-				if (!numero) {
-					mostrarModalError({
-						titulo: "Número requerido",
-						mensaje:
-							"Debe ingresar el número de denuncia que recibió al realizar el registro.",
-					});
-
-					return;
-				}
-
-				if (!/^DC-\d{4}-\d{6}$/.test(numero)) {
-					mostrarModalError({
-						titulo: "Número de denuncia no válido",
-						mensaje:
-							"El número ingresado no tiene el formato esperado.",
-						detalle:
-							"Verifique el número e ingréselo nuevamente. Ejemplo: DC-2026-000001.",
-					});
-
-					inputNumero?.focus();
-
-					return;
-				}
-
-				ocultarResultado();
-				cambiarEstadoConsulta(true);
-
-				try {
-					const response = await fetch(
-						`${endpoint}/${encodeURIComponent(numero)}`,
-						{
-							method: "GET",
-							headers: {
-								Accept: "application/json",
-							},
-						},
-					);
-
-					let data:
-						| SeguimientoResponse
-						| ErrorResponse
-						| null = null;
-
-					try {
-						data = await response.json();
-					} catch {
-						data = null;
-					}
-
-					// =============================================
-					// RESPUESTAS NEGATIVAS
-					// =============================================
-
-					if (!response.ok) {
-						const mensaje =
-							data &&
-							"error" in data &&
-							data.error
-								? data.error
-								: "No fue posible consultar la denuncia.";
-
-						if (response.status === 404) {
-							mostrarModalError({
-								titulo: "Denuncia no encontrada",
-								mensaje,
-								detalle:
-									"Verifique que el número ingresado sea correcto e intente nuevamente.",
-							});
-
-							return;
-						}
-
-						if (response.status >= 500) {
-							mostrarModalError({
-								titulo:
-									"No fue posible realizar la consulta",
-								mensaje,
-								detalle:
-									"El servicio presentó un inconveniente. Intente nuevamente en unos momentos.",
-							});
-
-							return;
-						}
-
-						mostrarModalError({
-							titulo: "No fue posible realizar la consulta",
-							mensaje,
-							detalle:
-								"Revise el número ingresado e intente nuevamente.",
-						});
-
-						return;
-					}
-
-					// =============================================
-					// VALIDAR RESPUESTA
-					// =============================================
-
-					if (
-						!data ||
-						!("numero_denuncia" in data) ||
-						!("estado" in data) ||
-						!("estado_nombre" in data)
-					) {
-						mostrarModalError({
-							titulo: "Respuesta no válida",
-							mensaje:
-								"El servicio no devolvió correctamente la información de la denuncia.",
-							detalle:
-								"Intente realizar la consulta nuevamente en unos momentos.",
-						});
-
-						return;
-					}
-
-					// =============================================
-					// RESPUESTA CORRECTA
-					// =============================================
-
-					const seguimiento =
-						data as SeguimientoResponse;
-
-					mostrarResultado(seguimiento);
-
-					mostrarToast(
-						"Consulta realizada",
-						`Se encontró la información de la denuncia ${seguimiento.numero_denuncia}.`,
-					);
-				} catch (error) {
-					console.error(
-						"[SEGUIMIENTO] Error de comunicación:",
-						error,
-					);
-
-					mostrarModalError({
-						titulo: "No fue posible realizar la consulta",
-						mensaje:
-							"No pudimos comunicarnos con el servicio de seguimiento.",
-						detalle:
-							"Verifique su conexión e intente nuevamente en unos momentos.",
-					});
-				} finally {
-					cambiarEstadoConsulta(false);
-				}
-			},
-		);
-	};
-
-	inicializarSeguimiento();
-
-	document.addEventListener(
-		"astro:page-load",
-		inicializarSeguimiento,
-	);
+ type HistorialPublico = { estado: string; nombre: string; observacion: string | null; respuesta?: string | null; fecha: string };
+ type SeguimientoResponse = { numero_denuncia: string; fecha_denuncia: string; estado: string; estado_nombre: string; descripcion: string; historial: HistorialPublico[] };
+ const objeto = (value: unknown): value is Record<string, unknown> => typeof value === "object" && value !== null && !Array.isArray(value);
+ const texto = (value: unknown): value is string => typeof value === "string";
+ const opcional = (value: unknown) => value == null || texto(value);
+ const patronNumero = /^DC-[0-9]{4}-[0-9]{6,}$/;
+ const validarSeguimiento = (data: unknown): data is SeguimientoResponse => {
+  if (!objeto(data) || !texto(data.numero_denuncia) || !patronNumero.test(data.numero_denuncia) || !texto(data.fecha_denuncia) || !texto(data.estado) || !texto(data.estado_nombre) || !texto(data.descripcion) || !Array.isArray(data.historial)) return false;
+  return data.historial.every(item => objeto(item) && texto(item.estado) && texto(item.nombre) && texto(item.fecha) && opcional(item.observacion) && opcional(item.respuesta));
+ };
+ const clasesEstado: Record<string, string> = {
+  REGISTRADA: "border-blue-200 bg-blue-50 text-blue-700",
+  EN_REVISION: "border-amber-200 bg-amber-50 text-amber-700",
+  EN_TRAMITE: "border-indigo-200 bg-indigo-50 text-indigo-700",
+  ATENDIDA: "border-emerald-200 bg-emerald-50 text-emerald-700",
+  CERRADA: "border-slate-300 bg-slate-100 text-slate-700",
+  DESCARTADA: "border-red-200 bg-red-50 text-red-700",
+ };
+ function inicializarSeguimiento() {
+  const raiz = document.querySelector<HTMLElement>("[data-seguimiento-contenedor]");
+  if (!raiz || raiz.dataset.initialized === "true") return;
+  const contenedor: HTMLElement = raiz;
+  const campo = <T extends Element>(selector: string): T => {
+   const elemento = contenedor.querySelector<T>(selector);
+   if (!elemento) throw new Error(`Falta el elemento ${selector} del seguimiento.`);
+   return elemento;
+  };
+  const formulario = campo<HTMLFormElement>("#form-seguimiento");
+  const contenido = campo<HTMLElement>("#contenido-seguimiento");
+  const estadoServicio = campo<HTMLElement>("#estado-servicio-seguimiento");
+  const tituloServicio = campo<HTMLElement>("#titulo-servicio-seguimiento");
+  const mensajeServicio = campo<HTMLElement>("#mensaje-servicio-seguimiento");
+  const reintentar = campo<HTMLButtonElement>("#btn-reintentar-seguimiento");
+  const mensajeConsulta = campo<HTMLElement>("#mensaje-consulta-seguimiento");
+  const inputNumero = campo<HTMLInputElement>("#numero-denuncia");
+  const botonConsultar = campo<HTMLButtonElement>("#btn-consultar");
+  const textoBoton = campo<HTMLElement>("#texto-btn-consultar");
+  const iconoConsultar = campo<SVGElement>("#icono-consultar");
+  const iconoCargando = campo<SVGElement>("#icono-cargando");
+  const resultado = campo<HTMLElement>("#resultado-seguimiento");
+  const historialContenedor = campo<HTMLElement>("#historial-seguimiento");
+  const sinHistorial = campo<HTMLElement>("#sin-historial");
+  contenedor.dataset.initialized = "true";
+  let consultando = false;
+  let verificando = false;
+  let disponible = false;
+  let ultimoNumeroConsultado = "";
+  const ocultarResultado = () => { resultado.classList.add("hidden"); historialContenedor.replaceChildren(); };
+  const avisar = (mensaje: string) => { mensajeConsulta.textContent = mensaje; mensajeConsulta.classList.toggle("hidden", !mensaje); };
+  const actualizarControles = () => {
+   formulario.setAttribute("aria-busy", String(consultando));
+   botonConsultar.disabled = inputNumero.disabled = consultando || !disponible;
+   textoBoton.textContent = consultando ? "Consultando..." : "Consultar";
+   iconoConsultar.classList.toggle("hidden", consultando);
+   iconoCargando.classList.toggle("hidden", !consultando);
+   reintentar.disabled = verificando || consultando;
+  };
+  const mantenimiento = () => {
+   disponible = false;
+   contenido.classList.add("hidden");
+   ocultarResultado(); avisar("");
+   estadoServicio.classList.remove("hidden");
+   estadoServicio.setAttribute("role", "alert");
+   estadoServicio.setAttribute("aria-busy", "false");
+   tituloServicio.textContent = "Estamos en mantenimiento";
+   mensajeServicio.textContent = "En este momento la consulta de denuncias no está disponible. Por favor, intente nuevamente más tarde. Gracias por su comprensión.";
+   reintentar.classList.remove("hidden");
+   actualizarControles();
+  };
+  const consultarJSON = async (url: string) => {
+   const controller = new AbortController();
+   const timeout = window.setTimeout(() => controller.abort(), 15000);
+   try {
+    const response = await fetch(url, { method: "GET", headers: { Accept: "application/json" }, cache: "no-store", signal: controller.signal });
+    const data: unknown = await response.json().catch(() => null);
+    return { response, data };
+   } finally { window.clearTimeout(timeout); }
+  };
+  // Utiliza la ruta de catálogos ya existente para comprobar disponibilidad
+  // sin consultar ni inventar un número de denuncia.
+  const verificarDisponibilidad = async () => {
+   if (verificando || consultando) return;
+   verificando = true; disponible = false;
+   contenido.classList.add("hidden"); ocultarResultado(); avisar("");
+   estadoServicio.classList.remove("hidden"); estadoServicio.setAttribute("role", "status"); estadoServicio.setAttribute("aria-busy", "true");
+   tituloServicio.textContent = "Estamos preparando la consulta";
+   mensajeServicio.textContent = "Por favor, espere un momento.";
+   reintentar.classList.add("hidden"); actualizarControles();
+   try {
+    const endpoint = contenedor.dataset.disponibilidadEndpoint;
+    if (!endpoint || !formulario.dataset.endpoint) throw new Error("No están configurados los servicios del seguimiento.");
+    const { response, data } = await consultarJSON(endpoint);
+    if (!response.ok || !objeto(data) || !objeto(data.catalogos)) throw new Error(`No fue posible verificar el servicio. HTTP ${response.status}`);
+    disponible = true; estadoServicio.classList.add("hidden"); contenido.classList.remove("hidden");
+   } catch (error) {
+    console.error("[SEGUIMIENTO] Verificación de disponibilidad:", error);
+    mantenimiento();
+   } finally {
+    verificando = false; estadoServicio.setAttribute("aria-busy", "false"); actualizarControles();
+   }
+  };
+  const formatearFecha = (value: string, hora = false): string => {
+   // La fecha de denuncia es un DATE: conserva el día del registro.
+   const fecha = new Date(hora ? value : `${value.slice(0, 10)}T12:00:00-05:00`);
+   if (Number.isNaN(fecha.getTime())) return "Fecha no disponible";
+   return new Intl.DateTimeFormat("es-EC", { timeZone: "America/Guayaquil", day: "2-digit", month: "long", year: "numeric", ...(hora ? { hour: "2-digit", minute: "2-digit" } as const : {}) }).format(fecha);
+  };
+  const crearHistorialItem = (item: HistorialPublico, ultimo: boolean) => {
+   const fila = document.createElement("div"); fila.className = "relative flex gap-4";
+   const indicador = document.createElement("div"); indicador.className = "relative flex w-8 shrink-0 justify-center";
+   const punto = document.createElement("span"); punto.className = "relative z-10 mt-1 h-8 w-8 rounded-full border-4 border-white bg-[#0A3D91] shadow";
+   indicador.append(punto);
+   if (!ultimo) { const linea = document.createElement("span"); linea.className = "absolute left-1/2 top-8 h-[calc(100%-1rem)] w-px -translate-x-1/2 bg-slate-200"; indicador.append(linea); }
+   const detalle = document.createElement("div"); detalle.className = ultimo ? "min-w-0 flex-1 pb-1" : "min-w-0 flex-1 pb-7";
+   const cabecera = document.createElement("div"); cabecera.className = "flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between";
+   const nombre = document.createElement("p"); nombre.className = "font-extrabold text-[#061B4E]"; nombre.textContent = item.nombre;
+   const fecha = document.createElement("p"); fecha.className = "text-xs font-medium text-slate-500"; fecha.textContent = formatearFecha(item.fecha, true);
+   cabecera.append(nombre, fecha); detalle.append(cabecera);
+   if (item.respuesta?.trim()) {
+    const respuesta = document.createElement("div"); respuesta.className = "mt-3 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3";
+    const titulo = document.createElement("p"); titulo.className = "mb-1 text-xs font-bold text-[#0A3D91]"; titulo.textContent = "Respuesta de la institución";
+    const texto = document.createElement("p"); texto.className = "whitespace-pre-wrap break-words text-sm leading-6 text-slate-700"; texto.textContent = item.respuesta;
+    respuesta.append(titulo, texto); detalle.append(respuesta);
+   } else if (item.observacion?.trim()) {
+    const observacion = document.createElement("p"); observacion.className = "mt-2 whitespace-pre-wrap break-words rounded-xl bg-slate-50 px-4 py-3 text-sm leading-6 text-slate-600"; observacion.textContent = item.observacion; detalle.append(observacion);
+   }
+   fila.append(indicador, detalle); return fila;
+  };
+  const mostrarResultado = (data: SeguimientoResponse) => {
+   campo<HTMLElement>("#resultado-numero").textContent = data.numero_denuncia;
+   campo<HTMLElement>("#resultado-fecha").textContent = formatearFecha(data.fecha_denuncia);
+   campo<HTMLElement>("#resultado-estado-nombre").textContent = data.estado_nombre;
+   campo<HTMLElement>("#resultado-descripcion").textContent = data.descripcion;
+   const estado = campo<HTMLElement>("#resultado-estado");
+   estado.className = `inline-flex items-center rounded-full border px-3 py-1.5 text-sm font-bold ${clasesEstado[data.estado] ?? "border-slate-200 bg-slate-50 text-slate-700"}`;
+   estado.textContent = data.estado_nombre;
+   historialContenedor.replaceChildren(); sinHistorial.classList.toggle("hidden", data.historial.length > 0);
+   data.historial.forEach((item, index) => historialContenedor.append(crearHistorialItem(item, index === data.historial.length - 1)));
+   resultado.classList.remove("hidden"); resultado.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+  inputNumero.addEventListener("input", () => { inputNumero.value = inputNumero.value.toUpperCase(); ocultarResultado(); avisar(""); });
+  reintentar.addEventListener("click", () => void verificarDisponibilidad());
+  formulario.addEventListener("submit", async event => {
+   event.preventDefault();
+   if (consultando || verificando || !disponible) return;
+   inputNumero.value = inputNumero.value.trim().toUpperCase();
+   if (!formulario.checkValidity()) { formulario.reportValidity(); return; }
+   const numero = inputNumero.value;
+   if (numero.length > 30 || !patronNumero.test(numero)) { ocultarResultado(); avisar("Verifique el número de denuncia e ingréselo nuevamente. Ejemplo: DC-2026-000001."); inputNumero.focus(); return; }
+   const endpoint = formulario.dataset.endpoint;
+   if (!endpoint) { mantenimiento(); return; }
+   ultimoNumeroConsultado = numero;
+   ocultarResultado(); avisar(""); consultando = true; actualizarControles();
+   try {
+    const { response, data } = await consultarJSON(`${endpoint}/${encodeURIComponent(numero)}`);
+    // No encontrada o número inválido no implican mantenimiento del sistema.
+    if (response.status === 404) { avisar("No encontramos una denuncia con ese número. Verifique que esté escrito correctamente e intente nuevamente."); return; }
+    if (response.status === 400) { avisar("El número de denuncia no es válido. Revíselo e intente nuevamente."); return; }
+    if (response.status === 429) { avisar("Ha realizado varias consultas seguidas. Espere un momento antes de volver a intentar."); return; }
+    if (!response.ok || !validarSeguimiento(data) || data.numero_denuncia !== ultimoNumeroConsultado) throw new Error(`No fue posible obtener el seguimiento. HTTP ${response.status}`);
+    mostrarResultado(data);
+   } catch (error) {
+    console.error("[SEGUIMIENTO] Error de consulta:", error);
+    mantenimiento();
+   } finally { consultando = false; actualizarControles(); }
+  });
+  void verificarDisponibilidad();
+ }
+ inicializarSeguimiento();
+ document.addEventListener("astro:page-load", inicializarSeguimiento);
 </script>
